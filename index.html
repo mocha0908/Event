@@ -1,0 +1,124 @@
+// 1. データ取得と画面描画（締切間近を最優先ソート）
+    async function fetchEvents() {
+      const loadingEl = document.getElementById('loading');
+      const listEl = document.getElementById('event-list');
+      loadingEl.style.display = 'block';
+      listEl.innerHTML = '';
+
+      try {
+        const response = await fetch(GAS_API_URL);
+        const data = await response.json();
+
+        // 💡 今日の日付を特定するための準備（日付比較用）
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0]; // "2026-06-11" のような形式
+        
+        const tomorrow = new Date();
+        tomorrow.setDate(now.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        // 💡 特殊ソートロジック
+        const sortedData = data.sort((a, b) => {
+          // 申し込み締め切りが今日・明日かどうかを判定
+          const aIsUrgent = (a.申し込み締め切り === todayStr || a.申し込み締め切り === tomorrowStr);
+          const bIsUrgent = (b.申し込み締め切り === todayStr || b.申し込み締め切り === tomorrowStr);
+
+          // どちらも緊急、またはどちらも緊急ではない場合は「開催日」が近い順
+          if (aIsUrgent && bIsUrgent) {
+            return new Date(a.申し込み締め切り) - new Date(b.申し込み締め切り); // 締切が今日の方をより上に
+          }
+          // aだけが今日・明日締め切りなら、aを上にする
+          if (aIsUrgent && !bIsUrgent) return -1;
+          // bだけが今日・明日締め切りなら、bを上にする
+          if (!aIsUrgent && bIsUrgent) return 1;
+
+          // 通常データ同士は「開催日」が近い順（これまでのロジック）
+          return new Date(a.開催日) - new Date(b.開催日);
+        });
+
+        loadingEl.style.display = 'none';
+
+        sortedData.forEach(event => {
+          // 💡 締め切りが今日か明日ならカードに赤い枠線をつけてさらに目立たせる
+          const isUrgent = (event.申し込み締め切り === todayStr || event.申し込み締め切り === tomorrowStr);
+          const borderClass = isUrgent ? "border-2 border-red-500 bg-red-50/30 animate-pulse-subtle" : "border-gray-200 bg-white";
+
+          const numbers = [event.番号1, event.番号2, event.番号3, event.番号4, event.番号5]
+            .filter(num => num !== undefined && num !== null && num !== "")
+            .join(", ");
+
+          const card = document.createElement('div');
+          // borderClass を適用して見た目も差別化
+          card.className = `${borderClass} p-6 rounded-xl shadow-md flex flex-col justify-between space-y-4`;
+          
+          card.innerHTML = `
+            <div>
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-sm font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded">${event.開催日}</span>
+                ${event.申し込み締め切り ? `
+                  <span class="text-xs font-bold ${isUrgent ? 'bg-red-600 text-white animate-bounce-short' : 'bg-red-100 text-red-700'} px-2 py-1 rounded">
+                    ${event.申し込み締め切り === todayStr ? '⚠️ 今日締切！' : event.申し込み締め切り === tomorrowStr ? '⏳ 明日締切！' : '締切: ' + event.申し込み締め切り}
+                  </span>
+                ` : ''}
+              </div>
+              <h2 class="text-lg font-bold text-gray-900 mb-1">
+                ${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}
+              </h2>
+              <p class="text-sm text-gray-600 mb-2">📍 ${event.会場 || '未設定'} (枠数: ${event.枠数 || '-'})</p>
+              ${event.URL ? `<a href="${event.URL}" target="_blank" class="text-xs text-blue-500 hover:underline block truncate mb-4">🔗 公式リンクへ飛ぶ</a>` : ''}
+              
+              <div class="bg-gray-50 p-3 rounded-lg text-sm mb-4 space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-gray-700">管理番号:</span>
+                  <span class="text-xs text-gray-500">${numbers || '未入力'}</span>
+                </div>
+                <div id="inline-edit-${event.id}-nums" class="hidden space-y-1 pt-1 border-t">
+                  <input type="text" id="edit-${event.id}-num1" value="${event.番号1 || ''}" placeholder="番号1" class="border p-1 text-xs rounded w-full">
+                  <input type="text" id="edit-${event.id}-num2" value="${event.番号2 || ''}" placeholder="番号2" class="border p-1 text-xs rounded w-full">
+                  <input type="text" id="edit-${event.id}-num3" value="${event.番号3 || ''}" placeholder="番号3" class="border p-1 text-xs rounded w-full">
+                </div>
+                <button onclick="toggleInlineEdit('${event.id}-nums')" id="btn-${event.id}-nums" class="text-xs text-blue-500 hover:underline">✏️ 番号1〜3を修正する</button>
+                <button onclick="saveMultipleNumbers(${event.id})" id="save-${event.id}-nums" class="hidden text-xs bg-blue-500 text-white px-2 py-0.5 rounded ml-2">保存</button>
+              </div>
+            </div>
+
+            <div class="border-t pt-4 space-y-2 text-sm text-gray-700">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 text-blue-600 rounded">
+                <span>🔔 リマインドしたか</span>
+              </label>
+
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 text-blue-600 rounded">
+                <span>✅ 申し込み済み</span>
+              </label>
+
+              <div class="flex items-center justify-between border-t pt-2 mt-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" ${event.なゆ参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'なゆ参戦か', this.checked)" class="w-4 h-4 text-pink-600 rounded">
+                  <span>なゆ参戦</span>
+                </label>
+                <div class="flex items-center space-x-1">
+                  <span class="text-xs text-gray-500">番:</span>
+                  <input type="text" id="input-nayunum-${event.id}" value="${event.番号なゆ || ''}" onchange="updateCell(${event.id}, '番号なゆ', this.value)" class="border w-16 p-0.5 text-xs text-center rounded bg-gray-50 focus:bg-white" placeholder="-">
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" ${event.そると参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'そると参戦か', this.checked)" class="w-4 h-4 text-green-600 rounded">
+                  <span>そると参戦</span>
+                </label>
+                <div class="flex items-center space-x-1">
+                  <span class="text-xs text-gray-500">番:</span>
+                  <input type="text" id="input-soltnum-${event.id}" value="${event.番号そると || ''}" onchange="updateCell(${event.id}, '番号そると', this.value)" class="border w-16 p-0.5 text-xs text-center rounded bg-gray-50 focus:bg-white" placeholder="-">
+                </div>
+              </div>
+            </div>
+          `;
+          listEl.appendChild(card);
+        });
+      } catch (error) {
+        loadingEl.textContent = "データの読み込みに失敗しました。";
+      }
+    }
