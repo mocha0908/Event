@@ -70,7 +70,7 @@
 
     // セルデータから「番号」と「ステータス」を切り分ける
     function parseNumberCell(cellValue) {
-      if (!cellValue) return { num: "", status: "自分使用" };
+      if (!cellValue || cellValue === "null" || cellValue === "undefined") return { num: "", status: "自分使用" };
       const str = String(cellValue);
       if (str.includes(":")) {
         const parts = str.split(":");
@@ -90,7 +90,6 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        // 日本時間ベースで「今日」と「明日」の文字列（YYYY-MM-DD）を作る
         const getJstDateString = (dateObj) => {
           const y = dateObj.getFullYear();
           const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -106,10 +105,20 @@
 
         // 日付を「XXXX年XX月XX日」に変換する
         const formatToJapaneseDate = (dateStr) => {
-          if (!dateStr) return '未設定';
-          const parts = dateStr.split('-');
-          if (parts.length !== 3) return dateStr;
-          return `${parts[0]}年${Number(parts[1])}月${Number(parts[2])}日`;
+          if (!dateStr || dateStr === "null" || dateStr === "undefined") return '未設定';
+          if (typeof dateStr === 'string' && dateStr.includes('年')) return dateStr;
+
+          const normalizedStr = String(dateStr).replace(/\//g, '-');
+          const parts = normalizedStr.split('-');
+          
+          if (parts.length !== 3) return '未設定';
+          
+          const year = parts[0];
+          const month = Number(parts[1]);
+          const day = Number(parts[2]);
+
+          if (isNaN(month) || isNaN(day)) return '未設定';
+          return `${year}年${month}月${day}日`;
         };
 
         // 締切優先の二段階ソート
@@ -145,11 +154,23 @@
           const displayDeadlineDate = formatToJapaneseDate(event.申し込み締め切り);
 
           const card = document.createElement('div');
-          card.className = `${borderClass} p-5 rounded-xl shadow-md flex flex-col justify-between space-y-4`;
+          card.className = `${borderClass} p-5 rounded-xl shadow-md flex flex-col justify-between space-y-4 relative`;
           
+          // 💡 JavaScript用：コピペ用の「月日〆」を計算する処理
+          let mmddDeadline = "（締切未設定）";
+          if (event.申し込み締め切り && event.申し込み締め切り !== "null") {
+            const parts = event.申し込み締め切り.replace(/\//g, '-').split('-');
+            if (parts.length === 3) {
+              mmddDeadline = `${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}〆`;
+            }
+          }
+
+          // ボタン引数用に、改行をエスケープした安全なテキストを仕込む
+          const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
+
           card.innerHTML = `
             <div>
-              <div class="flex justify-between items-start mb-2">
+              <div class="flex justify-between items-start mb-2 pr-16">
                 <span class="text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded">${displayHoldingDate}</span>
                 ${event.申し込み締め切り ? `
                   <span class="text-[11px] font-bold ${isUrgent ? 'bg-red-600 text-white font-black' : 'bg-red-100 text-red-700'} px-2 py-1 rounded">
@@ -157,7 +178,12 @@
                   </span>
                 ` : ''}
               </div>
-              <h2 class="text-lg font-bold text-gray-900 mb-1">${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}</h2>
+
+              <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] px-2 py-1 rounded border border-gray-300 font-bold transition shadow-sm">
+                📋 コピペ用
+              </button>
+
+              <h2 class="text-lg font-bold text-gray-900 mb-1 mt-1">${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}</h2>
               <p class="text-sm text-gray-600 mb-2">📍 ${event.会場 || '未設定'} (枠: ${event.枠数 || '-'})</p>
               
               ${event.URL ? `
@@ -238,6 +264,22 @@
       } catch (error) {
         loadingEl.textContent = "データの読み込みに失敗しました。";
       }
+    }
+
+    // 💡 クリップボードへのコピーを行う関数
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("📋 情報をクリップボードにコピーしました！");
+      }).catch(err => {
+        // 万が一スマホの古いブラウザなどで古い書き方が必要な場合の予備
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        alert("📋 情報をコピーしました！");
+      });
     }
 
     function toggleInlineEdit(idKey) {
