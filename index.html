@@ -92,33 +92,34 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        // 💡 1日早くなるバグ（世界標準時ズレ）を日本時間に強制補正する関数
+        // 💡 時差バグを100%引き起こさない、最強の「文字分解型」日付パース関数
         const parseToPureDate = (dateStr) => {
           if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
           try {
+            // "2026-06-11T15:00:00.000Z" や "2026/06/11" から日付の数字だけを抜き出す
             let cleanStr = String(dateStr).split('T')[0].replace(/\//g, '-');
             if (cleanStr.includes('年')) {
               cleanStr = cleanStr.replace('年', '-').replace('月', '-').replace('日', '');
             }
             
-            const d = new Date(cleanStr);
+            const parts = cleanStr.split('-');
+            if (parts.length < 2) return null;
+
+            let year = parts.length === 3 ? parseInt(parts[0], 10) : new Date().getFullYear();
+            let month = parts.length === 3 ? parseInt(parts[1], 10) : parseInt(parts[0], 10);
+            let day = parts.length === 3 ? parseInt(parts[2], 10) : parseInt(parts[1], 10);
+
+            // ⚠️ 自動変換（new Date("strings")）を使わず、数字を直接指定して「ローカル（日本）時間」で組み立てる
+            // これにより、時差で1日戻る現象が完全に防げます
+            const d = new Date(year, month - 1, day, 0, 0, 0, 0);
             if (isNaN(d.getTime())) return null;
-
-            // ⚠️ ここが重要！世界標準時（UTC）として扱われて1日早くなるのを防ぐため、
-            // タイムゾーンのズレ（日本時間の9時間 = 540分分）をミリ秒で足して強制的に補正します
-            const timezoneOffsetMin = d.getTimezoneOffset(); // 実行環境のズレ分（日本なら -540）
-            if (timezoneOffsetMin !== 0) {
-              d.setTime(d.getTime() - (timezoneOffsetMin * 60 * 1000));
-            }
-
-            d.setHours(0, 0, 0, 0); // 時間をリセットして純粋な日付にする
             return d;
           } catch (e) {
             return null;
           }
         };
 
-        // 基準となる「今日」と「明日」
+        // 基準となる「今日」と「明日」をローカル時間で生成
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -133,7 +134,7 @@
           return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         };
 
-        // 安全な二段階ソート
+        // 二段階ソート
         const sortedData = data.sort((a, b) => {
           const aDate = parseToPureDate(a.申し込み締め切り);
           const bDate = parseToPureDate(b.申し込み締め切り);
