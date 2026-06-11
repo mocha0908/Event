@@ -71,7 +71,6 @@
       document.getElementById('add-form-container').classList.toggle('hidden');
     }
 
-    // セルデータから「番号」と「ステータス」を切り分ける
     function parseNumberCell(cellValue) {
       if (!cellValue || cellValue === "null" || cellValue === "undefined") return { num: "", status: "自分使用" };
       const str = String(cellValue).trim();
@@ -93,21 +92,29 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        // 💡 エラーで絶対に画面を止めない、超安全な日付パース関数
+        // 💡 1日早くなるバグ（世界標準時ズレ）を日本時間に強制補正する関数
         const parseToPureDate = (dateStr) => {
           if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
           try {
             let cleanStr = String(dateStr).split('T')[0].replace(/\//g, '-');
-            // もし「2026年6月11日」みたいな文字が迷い込んできたら変換を試みる
             if (cleanStr.includes('年')) {
               cleanStr = cleanStr.replace('年', '-').replace('月', '-').replace('日', '');
             }
+            
             const d = new Date(cleanStr);
             if (isNaN(d.getTime())) return null;
-            d.setHours(0, 0, 0, 0);
+
+            // ⚠️ ここが重要！世界標準時（UTC）として扱われて1日早くなるのを防ぐため、
+            // タイムゾーンのズレ（日本時間の9時間 = 540分分）をミリ秒で足して強制的に補正します
+            const timezoneOffsetMin = d.getTimezoneOffset(); // 実行環境のズレ分（日本なら -540）
+            if (timezoneOffsetMin !== 0) {
+              d.setTime(d.getTime() - (timezoneOffsetMin * 60 * 1000));
+            }
+
+            d.setHours(0, 0, 0, 0); // 時間をリセットして純粋な日付にする
             return d;
           } catch (e) {
-            return null; // 万が一バグってもnullを返して次に進む
+            return null;
           }
         };
 
@@ -126,7 +133,7 @@
           return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         };
 
-        // 💡 エラー落ちをガードした安全な二段階ソート
+        // 安全な二段階ソート
         const sortedData = data.sort((a, b) => {
           const aDate = parseToPureDate(a.申し込み締め切り);
           const bDate = parseToPureDate(b.申し込み締め切り);
@@ -138,10 +145,9 @@
           if (aIsUrgent && !bIsUrgent) return -1;
           if (!aIsUrgent && bIsUrgent) return 1;
 
-          // 通常データ同士は「開催日」順
           const aHold = parseToPureDate(a.開催日);
           const bHold = parseToPureDate(b.開催日);
-          const aTime = aHold ? aHold.getTime() : 9999999999999; // 日付なしは一番後ろへ
+          const aTime = aHold ? aHold.getTime() : 9999999999999;
           const bTime = bHold ? bHold.getTime() : 9999999999999;
           return aTime - bTime;
         });
@@ -274,7 +280,7 @@
           listEl.appendChild(card);
         });
       } catch (error) {
-        loadingEl.textContent = "データの読み込みに失敗しました。詳細エラーはブラウザのコンソールを確認してください。";
+        loadingEl.textContent = "データの読み込みに失敗しました。";
         console.error(error);
       }
     }
