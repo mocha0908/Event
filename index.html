@@ -6,56 +6,59 @@
   <title>イベント・チケ管理アプリ</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+<body class="bg-gray-50 min-h-screen p-4 md:p-8 text-gray-800">
 
   <div class="max-w-6xl mx-auto">
-    <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <h1 class="text-2xl font-bold text-gray-800">📅 イベント・チケ管理</h1>
-      <div class="flex space-x-2">
-        <button onclick="toggleForm()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded shadow transition font-semibold">
+    <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">📅 イベント・チケ管理</h1>
+        <p class="text-xs text-gray-500 mt-1">締切間近のイベントを最優先で自動ソートします</p>
+      </div>
+      <div class="flex space-x-2 w-full sm:w-auto">
+        <button onclick="toggleForm()" class="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-sm transition font-semibold text-sm">
           ＋ イベント追加
         </button>
-        <button onclick="fetchEvents()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition">
+        <button onclick="fetchEvents()" class="flex-1 sm:flex-none bg-white hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm transition border border-gray-300 font-semibold text-sm">
           🔄 更新
         </button>
       </div>
     </header>
 
-    <div id="add-form-container" class="hidden bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8 max-w-2xl mx-auto">
-      <h2 class="text-lg font-bold text-gray-800 mb-4">🆕 新しいイベントの追加</h2>
+    <div id="add-form-container" class="hidden bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8 max-w-2xl mx-auto transition-all">
+      <h2 class="text-base font-bold text-gray-900 mb-4 flex items-center">🆕 新しいイベントの追加</h2>
       <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold text-gray-700 mb-1">開催日 *</label>
-          <input type="date" name="開催日" required class="w-full border p-2 rounded text-sm">
+          <label class="block text-xs font-bold text-gray-600 mb-1">開催日 *</label>
+          <input type="date" name="開催日" required class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-700 mb-1">イベント名 *</label>
-          <input type="text" name="イベント名" required class="w-full border p-2 rounded text-sm" placeholder="ライブ・公演名">
+          <label class="block text-xs font-bold text-gray-600 mb-1">イベント名 *</label>
+          <input type="text" name="イベント名" required class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="ライブ・公演名">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-700 mb-1">会場</label>
-          <input type="text" name="会場" class="w-full border p-2 rounded text-sm" placeholder="会場名">
+          <label class="block text-xs font-bold text-gray-600 mb-1">会場</label>
+          <input type="text" name="会場" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="会場名">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-700 mb-1">URL</label>
-          <input type="url" name="URL" class="w-full border p-2 rounded text-sm" placeholder="https://...">
+          <label class="block text-xs font-bold text-gray-600 mb-1">URL</label>
+          <input type="url" name="URL" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="https://...">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-700 mb-1">申し込み締め切り</label>
-          <input type="date" name="申し込み締め切り" class="w-full border p-2 rounded text-sm">
+          <label class="block text-xs font-bold text-gray-600 mb-1">申し込み締め切り</label>
+          <input type="date" name="申し込み締め切り" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-700 mb-1">枠数</label>
-          <input type="number" name="枠数" class="w-full border p-2 rounded text-sm" placeholder="5">
+          <label class="block text-xs font-bold text-gray-600 mb-1">枠数</label>
+          <input type="number" name="枠数" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="5">
         </div>
-        <div class="sm:col-span-2 flex justify-end space-x-2 pt-2">
-          <button type="button" onclick="toggleForm()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm">キャンセル</button>
-          <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded text-sm font-bold shadow">スプレッドシートに追加</button>
+        <div class="sm:col-span-2 flex justify-end space-x-2 pt-2 border-t mt-2">
+          <button type="button" onclick="toggleForm()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm font-semibold">キャンセル</button>
+          <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm">スプレッドシートに追加</button>
         </div>
       </form>
     </div>
 
-    <div id="loading" class="text-center text-gray-500 my-8">データを読み込み中...</div>
+    <div id="loading" class="text-center text-gray-500 my-12 text-sm font-medium animate-pulse">データを読み込み中...</div>
 
     <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </div>
@@ -71,7 +74,7 @@
     // セルデータから「番号」と「ステータス」を切り分ける
     function parseNumberCell(cellValue) {
       if (!cellValue || cellValue === "null" || cellValue === "undefined") return { num: "", status: "自分使用" };
-      const str = String(cellValue);
+      const str = String(cellValue).trim();
       if (str.includes(":")) {
         const parts = str.split(":");
         return { num: parts[0], status: parts[1] };
@@ -103,22 +106,26 @@
         tomorrow.setDate(now.getDate() + 1);
         const tomorrowStr = getJstDateString(tomorrow);
 
-        // 日付を「XXXX年XX月XX日」に変換する
+        // 💡 開催日「未設定」バグを完全に修正した日付フォーマット関数
         const formatToJapaneseDate = (dateStr) => {
-          if (!dateStr || dateStr === "null" || dateStr === "undefined") return '未設定';
+          if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return '未設定';
+          
+          // すでに日本語表記に変換されている場合はそのまま返す
           if (typeof dateStr === 'string' && dateStr.includes('年')) return dateStr;
 
-          const normalizedStr = String(dateStr).replace(/\//g, '-');
-          const parts = normalizedStr.split('-');
+          // ISO文字列 (2026-06-11T00:00:00.000Z形式など) の場合は日付部分だけ引っこ抜く
+          let cleanStr = String(dateStr).split('T')[0];
+          cleanStr = cleanStr.replace(/\//g, '-'); // スラッシュをハイフンに統一
           
-          if (parts.length !== 3) return '未設定';
-          
-          const year = parts[0];
-          const month = Number(parts[1]);
-          const day = Number(parts[2]);
+          const parts = cleanStr.split('-');
+          if (parts.length < 2) return dateStr; // 分割できない不規則な形式ならそのまま出す
 
-          if (isNaN(month) || isNaN(day)) return '未設定';
-          return `${year}年${month}月${day}日`;
+          // 年が省略されて届いた場合（GASの挙動対策）
+          if (parts.length === 2) {
+            return `${Number(parts[0])}月${Number(parts[1])}日`;
+          }
+
+          return `${parts[0]}年${Number(parts[1])}月${Number(parts[2])}日`;
         };
 
         // 締切優先の二段階ソート
@@ -139,13 +146,12 @@
 
         sortedData.forEach(event => {
           const isUrgent = (event.申し込み締め切り === todayStr || event.申し込み締め切り === tomorrowStr);
-          const borderClass = isUrgent ? "border-2 border-red-500 bg-red-50/30" : "border-gray-200 bg-white";
+          const borderClass = isUrgent ? "border-2 border-red-500 bg-red-50/20" : "border border-gray-200 bg-white";
 
           const p1 = parseNumberCell(event.番号1);
           const p2 = parseNumberCell(event.番号2);
-          const p3 = parseNumberCell(event.番号3);
 
-          const displayNumbers = [p1, p2, p3]
+          const displayNumbers = [p1, p2]
             .filter(p => p.num !== "")
             .map(p => `${p.num}(${p.status.replace('使用','').replace('み','')})`)
             .join(", ");
@@ -154,63 +160,66 @@
           const displayDeadlineDate = formatToJapaneseDate(event.申し込み締め切り);
 
           const card = document.createElement('div');
-          card.className = `${borderClass} p-5 rounded-xl shadow-md flex flex-col justify-between space-y-4 relative`;
+          card.className = `${borderClass} p-5 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 relative transition hover:shadow-md`;
           
-          // 💡 JavaScript用：コピペ用の「月日〆」を計算する処理
+          // コピペ用の「月日〆」を計算
           let mmddDeadline = "（締切未設定）";
           if (event.申し込み締め切り && event.申し込み締め切り !== "null") {
-            const parts = event.申し込み締め切り.replace(/\//g, '-').split('-');
+            const cleanDl = String(event.申し込み締め切り).split('T')[0].replace(/\//g, '-');
+            const parts = cleanDl.split('-');
             if (parts.length === 3) {
               mmddDeadline = `${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}〆`;
+            } else if (parts.length === 2) {
+              mmddDeadline = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}〆`;
             }
           }
 
-          // ボタン引数用に、改行をエスケープした安全なテキストを仕込む
+          // 改行テキストデータを作成
           const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
           card.innerHTML = `
             <div>
-              <div class="flex justify-between items-start mb-2 pr-16">
-                <span class="text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded">${displayHoldingDate}</span>
+              <div class="flex justify-between items-start mb-3 pr-10">
+                <span class="text-[11px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md border border-indigo-100">${displayHoldingDate}</span>
                 ${event.申し込み締め切り ? `
-                  <span class="text-[11px] font-bold ${isUrgent ? 'bg-red-600 text-white font-black' : 'bg-red-100 text-red-700'} px-2 py-1 rounded">
+                  <span class="text-[11px] font-bold ${isUrgent ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 border border-red-100'} px-2.5 py-1 rounded-md">
                     ${event.申し込み締め切り === todayStr ? '⚠️ 今日締切！' : event.申し込み締め切り === tomorrowStr ? '⏳ 明日締切！' : '締切: ' + displayDeadlineDate}
                   </span>
                 ` : ''}
               </div>
 
-              <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] px-2 py-1 rounded border border-gray-300 font-bold transition shadow-sm">
-                📋 コピペ用
+              <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-5 right-4 bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-800 p-1.5 rounded-lg border border-gray-200 transition shadow-sm" title="情報をコピー">
+                📋
               </button>
 
-              <h2 class="text-lg font-bold text-gray-900 mb-1 mt-1">${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}</h2>
-              <p class="text-sm text-gray-600 mb-2">📍 ${event.会場 || '未設定'} (枠: ${event.枠数 || '-'})</p>
+              <h2 class="text-base font-bold text-gray-900 mb-1.5 leading-snug">${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}</h2>
+              <p class="text-xs text-gray-500 mb-3 flex items-center">📍 ${event.会場 || '未設定'} <span class="mx-2 text-gray-300">|</span> 枠: ${event.枠数 || '-'}</p>
               
               ${event.URL ? `
-                <div class="text-xs text-gray-500 mb-4">
-                  <span class="font-bold block text-gray-600 mb-0.5">🔗 公式URL:</span>
-                  <a href="${event.URL}" target="_blank" class="text-blue-600 hover:underline break-all block">${event.URL}</a>
+                <div class="text-[11px] bg-blue-50/50 border border-blue-100 p-2 rounded-lg mb-4">
+                  <span class="font-bold block text-blue-800 mb-0.5">🔗 公式URL:</span>
+                  <a href="${event.URL}" target="_blank" class="text-blue-600 hover:underline break-all block font-medium">${event.URL}</a>
                 </div>
               ` : ''}
               
-              <div class="bg-gray-50 p-3 rounded-lg text-sm mb-4 space-y-2">
+              <div class="bg-gray-50/80 border border-gray-100 p-3 rounded-xl text-xs mb-4 space-y-2">
                 <div class="flex justify-between items-center">
-                  <span class="font-bold text-gray-700">管理番号:</span>
-                  <span class="text-xs font-medium text-gray-600">${displayNumbers || '未入力'}</span>
+                  <span class="font-bold text-gray-500">管理番号:</span>
+                  <span class="font-semibold text-gray-800">${displayNumbers || '未入力'}</span>
                 </div>
                 
-                <div id="inline-edit-${event.id}-nums" class="hidden space-y-3 pt-2 border-t text-xs">
+                <div id="inline-edit-${event.id}-nums" class="hidden space-y-3 pt-2.5 border-t border-gray-200">
                   <div class="space-y-1">
-                    <input type="text" id="edit-${event.id}-num1" value="${p1.num}" placeholder="番号1" class="border p-1 rounded w-full">
-                    <select id="edit-${event.id}-status1" class="border p-1 rounded w-full bg-white">
+                    <input type="text" id="edit-${event.id}-num1" value="${p1.num}" placeholder="番号1" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs">
+                    <select id="edit-${event.id}-status1" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs text-gray-700">
                       <option value="自分使用" ${p1.status === "自分使用" ? "selected" : ""}>自分使用</option>
                       <option value="譲渡前" ${p1.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
                       <option value="譲渡済み" ${p1.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
                     </select>
                   </div>
-                  <div class="space-y-1 border-t pt-2">
-                    <input type="text" id="edit-${event.id}-num2" value="${p2.num}" placeholder="番号2" class="border p-1 rounded w-full">
-                    <select id="edit-${event.id}-status2" class="border p-1 rounded w-full bg-white">
+                  <div class="space-y-1 border-t border-gray-100 pt-2.5">
+                    <input type="text" id="edit-${event.id}-num2" value="${p2.num}" placeholder="番号2" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs">
+                    <select id="edit-${event.id}-status2" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs text-gray-700">
                       <option value="自分使用" ${p2.status === "undefined" || p2.status === "自分使用" ? "selected" : ""}>自分使用</option>
                       <option value="譲渡前" ${p2.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
                       <option value="譲渡済み" ${p2.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
@@ -219,42 +228,42 @@
                 </div>
                 
                 <div class="flex justify-between items-center pt-1">
-                  <button onclick="toggleInlineEdit('${event.id}-nums')" class="text-xs text-blue-500 hover:underline">✏️ 番号と分類を修正</button>
-                  <button onclick="saveMultipleNumbersWithStatus(${event.id})" id="save-${event.id}-nums" class="hidden text-xs bg-blue-500 text-white px-3 py-1 rounded font-bold shadow">保存</button>
+                  <button onclick="toggleInlineEdit('${event.id}-nums')" class="text-blue-600 hover:text-blue-700 font-medium hover:underline">✏️ 番号と分類を修正</button>
+                  <button onclick="saveMultipleNumbersWithStatus(${event.id})" id="save-${event.id}-nums" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md font-bold shadow-sm">保存</button>
                 </div>
               </div>
             </div>
 
-            <div class="border-t pt-4 space-y-2 text-sm text-gray-700">
-              <label class="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 text-blue-600 rounded">
+            <div class="border-t border-gray-100 pt-3.5 space-y-2.5 text-xs text-gray-700 font-medium">
+              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition">
+                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                 <span>🔔 リマインドしたか</span>
               </label>
 
-              <label class="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 text-blue-600 rounded">
+              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition">
+                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                 <span>✅ 申し込み済み</span>
               </label>
 
-              <div class="flex items-center justify-between border-t pt-2 mt-2">
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" ${event.なゆ参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'なゆ参戦か', this.checked)" class="w-4 h-4 text-pink-600 rounded">
+              <div class="flex items-center justify-between border-t border-gray-100 pt-2.5 mt-1.5">
+                <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition flex-1">
+                  <input type="checkbox" ${event.なゆ参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'なゆ参戦か', this.checked)" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
                   <span>なゆ参戦</span>
                 </label>
-                <div class="flex items-center space-x-1">
-                  <span class="text-xs text-gray-500">番:</span>
-                  <input type="text" id="input-nayunum-${event.id}" value="${event.番号なゆ || ''}" onchange="updateCell(${event.id}, '番号なゆ', this.value)" class="border w-16 p-0.5 text-xs text-center rounded bg-gray-50 focus:bg-white">
+                <div class="flex items-center space-x-1.5">
+                  <span class="text-[11px] text-gray-400 font-bold">番:</span>
+                  <input type="text" id="input-nayunum-${event.id}" value="${event.番号なゆ || ''}" onchange="updateCell(${event.id}, '番号なゆ', this.value)" class="border border-gray-300 w-16 p-1 text-center rounded-md bg-gray-50 focus:bg-white focus:ring-1 focus:ring-pink-500 focus:outline-none font-semibold text-gray-800">
                 </div>
               </div>
 
               <div class="flex items-center justify-between">
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" ${event.そると参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'そると参戦か', this.checked)" class="w-4 h-4 text-green-600 rounded">
+                <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition flex-1">
+                  <input type="checkbox" ${event.そると参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'そると参戦か', this.checked)" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
                   <span>そると参戦</span>
                 </label>
-                <div class="flex items-center space-x-1">
-                  <span class="text-xs text-gray-500">番:</span>
-                  <input type="text" id="input-soltnum-${event.id}" value="${event.番号そると || ''}" onchange="updateCell(${event.id}, '番号そると', this.value)" class="border w-16 p-0.5 text-xs text-center rounded bg-gray-50 focus:bg-white">
+                <div class="flex items-center space-x-1.5">
+                  <span class="text-[11px] text-gray-400 font-bold">番:</span>
+                  <input type="text" id="input-soltnum-${event.id}" value="${event.番号そると || ''}" onchange="updateCell(${event.id}, '番号そると', this.value)" class="border border-gray-300 w-16 p-1 text-center rounded-md bg-gray-50 focus:bg-white focus:ring-1 focus:ring-green-500 focus:outline-none font-semibold text-gray-800">
                 </div>
               </div>
             </div>
@@ -266,12 +275,11 @@
       }
     }
 
-    // 💡 クリップボードへのコピーを行う関数
+    // クリップボードへのコピー関数
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
-        alert("📋 情報をクリップボードにコピーしました！");
+        alert("📋 情報をコピーしました！");
       }).catch(err => {
-        // 万が一スマホの古いブラウザなどで古い書き方が必要な場合の予備
         const textarea = document.createElement("textarea");
         textarea.value = text;
         document.body.appendChild(textarea);
