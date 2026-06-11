@@ -3,109 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡️ EVENT & TICKET HUB</title>
+  <title>イベント・チケット管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif; }
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; }
   </style>
 </head>
-<body class="bg-slate-900 min-h-screen text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-[#fafafa] min-h-screen text-gray-900 antialiased">
 
-  <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+  <div class="max-w-6xl mx-auto px-4 py-12 sm:px-6">
     
-    <header class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-800 pb-6">
+    <header class="mb-12 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-6">
       <div>
-        <div class="flex items-center gap-3">
-          <span class="text-3xl">⚡️</span>
-          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-            EVENT & TICKET HUB
-          </h1>
-        </div>
-        <p class="text-xs sm:text-sm text-slate-400 mt-2 font-medium">締切最優先オートソートシステム稼働中</p>
+        <h1 class="text-xl font-bold text-gray-900 tracking-tight">イベント・チケット管理</h1>
+        <p class="text-xs text-gray-400 mt-1">締切が近いものを最上位に自動ソートしています</p>
       </div>
       
-      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-        <button onclick="toggleForm('add-form-container')" class="flex-1 md:flex-none bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-emerald-950/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
-          <span>＋</span> イベントを追加
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button onclick="toggleForm('add-form-container')" class="flex-1 sm:flex-none bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium text-xs transition duration-150">
+          イベント追加
         </button>
-        <button onclick="toggleForm('member-manager-container')" class="flex-1 md:flex-none bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-purple-950/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
-          <span>👥</span> 参戦者の管理
+        <button onclick="toggleForm('member-manager-container')" class="flex-1 sm:flex-none bg-white hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-lg font-medium text-xs border border-gray-200 transition duration-150">
+          参戦者の管理
         </button>
-        <button onclick="fetchEvents()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2.5 rounded-xl border border-slate-700 transition duration-200 flex items-center justify-center" title="手動更新">
-          <span class="text-sm">🔄</span>
+        <button onclick="fetchEvents()" class="bg-white hover:bg-gray-50 text-gray-400 p-2 rounded-lg border border-gray-200 transition duration-150" title="更新">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path></svg>
         </button>
       </div>
     </header>
 
-    <div id="member-manager-container" class="hidden bg-slate-800/90 border border-slate-700 rounded-2xl shadow-2xl p-6 mb-8 max-w-xl mx-auto backdrop-blur-md animate-fade-in">
-      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
-        <h2 class="text-base font-bold text-white flex items-center gap-2">👥 参戦メンバーの一括設定</h2>
-        <button onclick="toggleForm('member-manager-container')" class="text-slate-400 hover:text-white text-sm">✕ 閉じる</button>
+    <div id="member-manager-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-8 max-w-md mx-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase">参戦メンバーの設定</h2>
+        <button onclick="toggleForm('member-manager-container')" class="text-gray-400 hover:text-gray-600 text-xs">✕</button>
       </div>
-      <p class="text-xs text-slate-400 mb-4">ここで登録したメンバー名が、すべてのイベントカードにチェックボックスとして一括で自動生成されます。</p>
-      
       <div class="flex gap-2 mb-4">
-        <input type="text" id="new-member-name" placeholder="例: なゆ、そると、マイキー" class="flex-1 bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500">
-        <button onclick="addMember()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition">追加</button>
+        <input type="text" id="new-member-name" placeholder="名前を入力" class="flex-1 bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
+        <button onclick="addMember()" class="bg-gray-900 text-white px-3 py-2 rounded-lg text-xs font-medium">追加</button>
       </div>
-      
-      <div id="manager-member-list" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1 bg-slate-900/50 rounded-xl border border-slate-800">
-        </div>
+      <div id="manager-member-list" class="flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-lg min-h-[40px]"></div>
     </div>
 
-    <div id="add-form-container" class="hidden bg-slate-800/90 border border-slate-700 rounded-2xl shadow-2xl p-6 mb-8 max-w-2xl mx-auto backdrop-blur-md">
-      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
-        <h2 class="text-base font-bold text-white flex items-center gap-2">🆕 新規イベント情報の登録</h2>
-        <button onclick="toggleForm('add-form-container')" class="text-slate-400 hover:text-white text-sm">✕ 閉じる</button>
-      </div>
-      <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+    <div id="add-form-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-8 max-w-xl mx-auto">
+      <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase mb-4">新規イベント登録</h2>
+      <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">開催日 *</label>
-          <input type="date" name="開催日" required class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">開催日</label>
+          <input type="date" name="開催日" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">イベント名 *</label>
-          <input type="text" name="イベント名" required class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="ライブ・公演タイトル">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">イベント名</label>
+          <input type="text" name="イベント名" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400" placeholder="公演名">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">会場</label>
-          <input type="text" name="会場" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="会場名・サーキット場所">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">会場</label>
+          <input type="text" name="会場" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400" placeholder="会場名">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">URL</label>
-          <input type="url" name="URL" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="https://ticketdive.com/...">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">URL</label>
+          <input type="url" name="URL" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400" placeholder="https://...">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">申し込み締め切り</label>
-          <input type="date" name="申し込み締め切り" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">申し込み締め切り</label>
+          <input type="date" name="申し込み締め切り" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">枠数</label>
-          <input type="number" name="枠数" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="連番上限など">
+          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">枠数</label>
+          <input type="number" name="枠数" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
         </div>
-        <div class="sm:col-span-2 flex justify-end space-x-3 pt-3 border-t border-slate-700 mt-2">
-          <button type="button" onclick="toggleForm('add-form-container')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition">キャンセル</button>
-          <button type="submit" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition">スプレッドシートに送信</button>
+        <div class="sm:col-span-2 flex justify-end space-x-2 pt-3 border-t border-gray-100 mt-2">
+          <button type="button" onclick="toggleForm('add-form-container')" class="text-gray-400 px-3 py-1.5 rounded-lg text-xs">キャンセル</button>
+          <button type="submit" class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-xs font-medium">登録</button>
         </div>
       </form>
     </div>
 
-    <div id="loading" class="my-20 text-center">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-4"></div>
-      <p class="text-sm text-slate-400 font-medium tracking-wide">最新のスプレッドシートデータを同期中...</p>
+    <div id="loading" class="my-24 text-center">
+      <div class="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin mb-2"></div>
+      <p class="text-xs text-gray-400">データを読み込み中</p>
     </div>
 
     <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </div>
 
   <script>
-    // ⚠️ ここにご自身のGASウェブアプリのURLを貼り付け
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwseOQ37SQ_9l7AL6yIaGeuZ7K79yndwdZ6VUxFVIAGQKdy9SJS3IvY3EGpxf0HT0uh/exec";
 
-    // ローカルストレージで参戦者リストをブラウザに記憶させる（初期値：なゆ、そると）
     let members = JSON.parse(localStorage.getItem('ticket_hub_members')) || ["なゆ", "そると"];
 
     function toggleForm(id) {
@@ -113,20 +99,19 @@
       if (id === 'member-manager-container') renderManagerMemberList();
     }
 
-    // 👥 参戦者マネージャーの描画
     function renderManagerMemberList() {
       const wrapper = document.getElementById('manager-member-list');
       wrapper.innerHTML = '';
       if(members.length === 0) {
-        wrapper.innerHTML = '<span class="text-xs text-slate-500 p-3">登録メンバーはいません</span>';
+        wrapper.innerHTML = '<span class="text-[11px] text-gray-400 p-2">登録なし</span>';
         return;
       }
       members.forEach((m, idx) => {
         const badge = document.createElement('div');
-        badge.className = "flex items-center gap-1.5 bg-slate-800 text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-700 shadow-sm";
+        badge.className = "flex items-center gap-1.5 bg-white text-gray-700 text-xs px-2.5 py-1 rounded-md border border-gray-200 shadow-sm";
         badge.innerHTML = `
-          <span>👤 ${m}</span>
-          <button onclick="deleteMember(${idx})" class="text-slate-500 hover:text-rose-400 font-bold ml-1 text-sm transition" title="この項目を削除">✕</button>
+          <span>${m}</span>
+          <button onclick="deleteMember(${idx})" class="text-gray-300 hover:text-red-500 font-bold ml-1">✕</button>
         `;
         wrapper.appendChild(badge);
       });
@@ -136,16 +121,15 @@
       const input = document.getElementById('new-member-name');
       const name = input.value.trim();
       if (!name) return;
-      if (members.includes(name)) { alert("既に同じ名前が存在します"); return; }
+      if (members.includes(name)) return;
       members.push(name);
       localStorage.setItem('ticket_hub_members', JSON.stringify(members));
       input.value = '';
       renderManagerMemberList();
-      fetchEvents(); // カード側の表示を一斉更新
+      fetchEvents();
     }
 
     function deleteMember(index) {
-      if(!confirm(`「${members[index]}」の参戦項目を削除しますか？\n（画面上から消えます。スプレッドシート内のメモデータ自体は壊れません）`)) return;
       members.splice(index, 1);
       localStorage.setItem('ticket_hub_members', JSON.stringify(members));
       renderManagerMemberList();
@@ -162,7 +146,6 @@
       return { num: str, status: "自分使用" };
     }
 
-    // 🌌 コアロジック：データ取得とサイバーパンク風スタイリッシュ描画
     async function fetchEvents() {
       const loadingEl = document.getElementById('loading');
       const listEl = document.getElementById('event-list');
@@ -201,7 +184,6 @@
           return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         };
 
-        // 2段階最速ソート
         const sortedData = data.sort((a, b) => {
           const aDate = parseToPureDate(a.申し込み締め切り);
           const bDate = parseToPureDate(b.申し込み締め切り);
@@ -222,12 +204,12 @@
           const isTomorrow = deadlineDateObj && deadlineDateObj.getTime() === tomorrow.getTime();
           const isUrgent = isToday || isTomorrow;
 
-          // 🪐 スタイリッシュボーダーシステム
-          let borderClass = "border border-slate-800 bg-slate-900/60";
-          let badgeClass = "bg-slate-800 text-slate-400 border border-slate-700";
+          // ─── 静かで上品なデザイン分け ───
+          let cardClass = "bg-white border border-gray-200";
+          let badgeClass = "bg-gray-100 text-gray-600";
           if (isUrgent) {
-            borderClass = "border-2 border-gradient-to-r from-rose-500 to-red-600 shadow-xl shadow-rose-950/20 bg-slate-900/90 ring-1 ring-rose-500/20";
-            badgeClass = "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm font-bold animate-pulse";
+            cardClass = "bg-white border-2 border-red-500 shadow-sm";
+            badgeClass = "bg-red-50 text-red-600 font-medium";
           }
 
           const p1 = parseNumberCell(event.番号1);
@@ -244,77 +226,72 @@
 
           const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
-          // 動的な参戦者チェックボックスブロックの生成
           let dynamicMembersHTML = '';
           members.forEach(m => {
-            // スプレッドシート側のキー（「なゆ」なら「なゆ参戦か」「番号なゆ」を呼び出す仕組み）
             const checkKey = `${m}参戦か`;
             const numKey = `番号${m}`;
-            
             const isChecked = event[checkKey] ? 'checked' : '';
             const numVal = event[numKey] || '';
 
-            // メンバーごとにちょっと色味を変えるスタイリッシュエフェクト
             dynamicMembersHTML += `
-              <div class="flex items-center justify-between bg-slate-800/40 p-1.5 px-2.5 rounded-xl border border-slate-800/80">
-                <label class="flex items-center space-x-2.5 cursor-pointer flex-1 py-0.5">
-                  <input type="checkbox" ${isChecked} onchange="updateCell(${event.id}, '${checkKey}', this.checked)" class="w-4 h-4 rounded text-indigo-500 bg-slate-900 border-slate-700 focus:ring-offset-slate-900 focus:ring-indigo-500">
-                  <span class="text-xs font-semibold text-slate-300">👤 ${m} 参戦</span>
+              <div class="flex items-center justify-between border-b border-gray-50 py-1.5 last:border-none">
+                <label class="flex items-center space-x-2 cursor-pointer flex-1">
+                  <input type="checkbox" ${isChecked} onchange="updateCell(${event.id}, '${checkKey}', this.checked)" class="w-3.5 h-3.5 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
+                  <span class="text-xs text-gray-600">${m}</span>
                 </label>
                 <div class="flex items-center space-x-1">
-                  <span class="text-[10px] text-slate-500 font-bold">番:</span>
-                  <input type="text" value="${numVal}" onchange="updateCell(${event.id}, '${numKey}', this.value)" class="border border-slate-700 bg-slate-900 w-16 p-1 text-center rounded-md text-xs text-slate-200 focus:border-indigo-500 focus:outline-none font-mono font-bold">
+                  <span class="text-[10px] text-gray-400">番:</span>
+                  <input type="text" value="${numVal}" onchange="updateCell(${event.id}, '${numKey}', this.value)" class="border border-gray-200 bg-gray-50 w-14 p-0.5 text-center rounded text-xs text-gray-700 focus:border-gray-400 focus:outline-none">
                 </div>
               </div>
             `;
           });
 
           const card = document.createElement('div');
-          card.className = `${borderClass} p-5 rounded-2xl flex flex-col justify-between space-y-4 relative transition-all duration-300 hover:scale-[1.01] hover:border-slate-700/60`;
+          card.className = `${cardClass} p-5 rounded-xl flex flex-col justify-between space-y-4 relative`;
           
           card.innerHTML = `
             <div>
-              <div class="flex justify-between items-start mb-3.5 pr-10">
-                <span class="text-[10px] font-bold bg-indigo-950/60 text-indigo-400 px-2.5 py-1 rounded-lg border border-indigo-900/50 tracking-wider">${displayHoldingDate}</span>
+              <div class="flex justify-between items-start mb-3 pr-8">
+                <span class="text-[10px] text-gray-400 font-medium tracking-tight">${displayHoldingDate}</span>
                 ${event.申し込み締め切り ? `
-                  <span class="text-[10px] font-bold px-2.5 py-1 rounded-lg tracking-wider ${badgeClass}">
-                    ${isToday ? '⚠️ TODAY DEADLINE' : isTomorrow ? '⏳ TOMORROW' : '〆: ' + displayDeadlineDate}
+                  <span class="text-[10px] px-2 py-0.5 rounded ${badgeClass}">
+                    ${isToday ? '今日締切' : isTomorrow ? '明日締切' : '締切: ' + displayDeadlineDate}
                   </span>
                 ` : ''}
               </div>
 
-              <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-5 right-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-lg border border-slate-700 transition shadow-md" title="情報をコピー">
-                📋
+              <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-4 right-4 text-gray-300 hover:text-gray-600 transition" title="コピー">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
               </button>
 
-              <h2 class="text-base font-bold text-white mb-2 leading-snug tracking-tight">${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}</h2>
-              <p class="text-xs text-slate-400 mb-4 flex items-center gap-1">📍 <span class="text-slate-300 font-medium">${event.会場 || '未設定'}</span> <span class="text-slate-700">|</span> 枠: <span class="text-slate-300 font-bold">${event.枠数 || '-'}</span></p>
+              <h2 class="text-sm font-bold text-gray-900 mb-1 leading-snug">${event.イベント名 || '未設定'}</h2>
+              <p class="text-xs text-gray-400">📍 ${event.会場 || '未設定'} <span class="mx-1.5 text-gray-200">|</span> 枠: ${event.枠数 || '-'}</p>
               
               ${event.URL ? `
-                <div class="text-[11px] bg-slate-950/40 border border-slate-800 p-2.5 rounded-xl mb-4">
-                  <span class="font-bold block text-indigo-400 mb-0.5">🔗 TICKET LINK:</span>
-                  <a href="${event.URL}" target="_blank" class="text-blue-400 hover:text-blue-300 underline break-all block font-medium transition">${event.URL}</a>
+                <div class="text-[11px] mt-3 pt-2.5 border-t border-gray-100">
+                  <a href="${event.URL}" target="_blank" class="text-blue-600 hover:underline break-all block font-medium">チケットリンク →</a>
                 </div>
               ` : ''}
               
-              <div class="bg-slate-950/20 border border-slate-800 p-3 rounded-xl text-xs mb-4 space-y-2">
+              <div class="bg-gray-50 p-2.5 rounded-lg text-xs mt-4 space-y-1.5">
                 <div class="flex justify-between items-center">
-                  <span class="font-bold text-slate-500 uppercase tracking-wider text-[10px]">管理番号</span>
-                  <span class="font-bold text-indigo-300 font-mono">${displayNumbers || '未アサイン'}</span>
+                  <span class="text-[10px] text-gray-400">管理番号</span>
+                  <span class="font-medium text-gray-800">${displayNumbers || '未入力'}</span>
                 </div>
                 
-                <div id="inline-edit-${event.id}-nums" class="hidden space-y-3 pt-2.5 border-t border-slate-800 animate-fade-in">
-                  <div class="space-y-1">
-                    <input type="text" id="edit-${event.id}-num1" value="${p1.num}" placeholder="番号1" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-white">
-                    <select id="edit-${event.id}-status1" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-slate-300">
+                <div id="inline-edit-${event.id}-nums" class="hidden space-y-2 pt-2 border-t border-gray-200">
+                  <div class="flex gap-1.5">
+                    <input type="text" id="edit-${event.id}-num1" value="${p1.num}" placeholder="番号1" class="bg-white border border-gray-200 p-1 rounded w-full text-xs">
+                    <select id="edit-${event.id}-status1" class="bg-white border border-gray-200 p-1 rounded text-xs text-gray-600">
                       <option value="自分使用" ${p1.status === "自分使用" ? "selected" : ""}>自分使用</option>
                       <option value="譲渡前" ${p1.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
                       <option value="譲渡済み" ${p1.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
                     </select>
                   </div>
-                  <div class="space-y-1 border-t border-slate-800 pt-2.5">
-                    <input type="text" id="edit-${event.id}-num2" value="${p2.num}" placeholder="番号2" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-white">
-                    <select id="edit-${event.id}-status2" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-slate-300">
+                  <div class="flex gap-1.5">
+                    <input type="text" id="edit-${event.id}-num2" value="${p2.num}" placeholder="番号2" class="bg-white border border-gray-200 p-1 rounded w-full text-xs">
+                    <select id="edit-${event.id}-status2" class="bg-white border border-gray-200 p-1 rounded text-xs text-gray-600">
                       <option value="自分使用" ${p2.status === "undefined" || p2.status === "自分使用" ? "selected" : ""}>自分使用</option>
                       <option value="譲渡前" ${p2.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
                       <option value="譲渡済み" ${p2.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
@@ -322,25 +299,25 @@
                   </div>
                 </div>
                 
-                <div class="flex justify-between items-center pt-1">
-                  <button onclick="toggleInlineEdit('${event.id}-nums')" class="text-indigo-400 hover:text-indigo-300 font-semibold text-[11px] hover:underline">✏️ 修正する</button>
-                  <button onclick="saveMultipleNumbersWithStatus(${event.id})" id="save-${event.id}-nums" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-md text-[11px] font-bold transition">保存</button>
+                <div class="flex justify-between items-center pt-0.5">
+                  <button onclick="toggleInlineEdit('${event.id}-nums')" class="text-gray-400 hover:text-gray-600 text-[10px]">編集</button>
+                  <button onclick="saveMultipleNumbersWithStatus(${event.id})" id="save-${event.id}-nums" class="hidden bg-gray-900 text-white px-2 py-0.5 rounded text-[10px]">保存</button>
                 </div>
               </div>
             </div>
 
-            <div class="border-t border-slate-800/80 pt-3.5 space-y-2 text-xs font-medium">
-              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-slate-800/30 p-1.5 px-2.5 rounded-xl transition">
-                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 rounded text-blue-500 bg-slate-900 border-slate-700 focus:ring-indigo-500">
-                <span class="text-slate-300">🔔 リマインド通知</span>
+            <div class="border-t border-gray-100 pt-3 space-y-1.5">
+              <label class="flex items-center space-x-2 cursor-pointer py-0.5">
+                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-3.5 h-3.5 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
+                <span class="text-xs text-gray-600">リマインド通知</span>
               </label>
 
-              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-800/30 p-1.5 px-2.5 rounded-xl transition">
-                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-indigo-500">
-                <span class="text-slate-300">✅ 本申し込み完了</span>
+              <label class="flex items-center space-x-2 cursor-pointer py-0.5">
+                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-3.5 h-3.5 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
+                <span class="text-xs text-gray-600">本申し込み完了</span>
               </label>
 
-              <div class="pt-2 border-t border-slate-800/60 space-y-2">
+              <div class="pt-2 mt-1 border-t border-gray-100">
                 ${dynamicMembersHTML}
               </div>
             </div>
@@ -348,19 +325,19 @@
           listEl.appendChild(card);
         });
       } catch (error) {
-        loadingEl.textContent = "同期エラーが発生しました。接続を確認してください。";
+        loadingEl.textContent = "同期エラーが発生しました。";
         console.error(error);
       }
     }
 
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
-        alert("📋 現場用テキストをコピーしました！");
+        alert("コピーしました");
       }).catch(err => {
         const textarea = document.createElement("textarea");
         textarea.value = text; document.body.appendChild(textarea); textarea.select();
         document.execCommand("copy"); document.body.removeChild(textarea);
-        alert("📋 現場用テキストをコピーしました！");
+        alert("コピーしました");
       });
     }
 
@@ -376,7 +353,7 @@
       const n2 = document.getElementById(`edit-${rowId}-num2`).value;
       const s2 = document.getElementById(`edit-${rowId}-status2`).value;
       await updateCell(rowId, '番号2', n2 ? `${n2}:${s2}` : "");
-      alert("管理ステータスを同期しました");
+      alert("保存しました");
       fetchEvents();
     }
 
@@ -384,7 +361,7 @@
       const payload = { id: rowId, column: columnName, value: value };
       try {
         await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      } catch (error) { console.error("セル更新エラー:", error); }
+      } catch (error) { console.error(error); }
     }
 
     async function addEvent(e) {
@@ -401,9 +378,9 @@
       };
       try {
         await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        alert("スプレッドシートへの追加が成功しました！");
+        alert("追加しました");
         form.reset(); toggleForm('add-form-container'); fetchEvents();
-      } catch (error) { alert("追加に失敗しました。"); }
+      } catch (error) { alert("失敗しました"); }
     }
 
     window.onload = fetchEvents;
