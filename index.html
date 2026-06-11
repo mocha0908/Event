@@ -3,62 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>イベント・チケ管理アプリ</title>
+  <title>⚡️ EVENT & TICKET HUB</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen p-4 md:p-8 text-gray-800">
+<body class="bg-slate-900 min-h-screen text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
 
-  <div class="max-w-6xl mx-auto">
-    <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5">
+  <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    
+    <header class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-800 pb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">📅 イベント・チケ管理</h1>
-        <p class="text-xs text-gray-500 mt-1">締切間近のイベントを最優先で自動ソートします</p>
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">⚡️</span>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+            EVENT & TICKET HUB
+          </h1>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mt-2 font-medium">締切最優先オートソートシステム稼働中</p>
       </div>
-      <div class="flex space-x-2 w-full sm:w-auto">
-        <button onclick="toggleForm()" class="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-sm transition font-semibold text-sm">
-          ＋ イベント追加
+      
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <button onclick="toggleForm('add-form-container')" class="flex-1 md:flex-none bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-emerald-950/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+          <span>＋</span> イベントを追加
         </button>
-        <button onclick="fetchEvents()" class="flex-1 sm:flex-none bg-white hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-lg shadow-sm transition border border-gray-300 font-semibold text-sm">
-          🔄 更新
+        <button onclick="toggleForm('member-manager-container')" class="flex-1 md:flex-none bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-purple-950/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+          <span>👥</span> 参戦者の管理
+        </button>
+        <button onclick="fetchEvents()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2.5 rounded-xl border border-slate-700 transition duration-200 flex items-center justify-center" title="手動更新">
+          <span class="text-sm">🔄</span>
         </button>
       </div>
     </header>
 
-    <div id="add-form-container" class="hidden bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8 max-w-2xl mx-auto transition-all">
-      <h2 class="text-base font-bold text-gray-900 mb-4 flex items-center">🆕 新しいイベントの追加</h2>
-      <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div id="member-manager-container" class="hidden bg-slate-800/90 border border-slate-700 rounded-2xl shadow-2xl p-6 mb-8 max-w-xl mx-auto backdrop-blur-md animate-fade-in">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">👥 参戦メンバーの一括設定</h2>
+        <button onclick="toggleForm('member-manager-container')" class="text-slate-400 hover:text-white text-sm">✕ 閉じる</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">ここで登録したメンバー名が、すべてのイベントカードにチェックボックスとして一括で自動生成されます。</p>
+      
+      <div class="flex gap-2 mb-4">
+        <input type="text" id="new-member-name" placeholder="例: なゆ、そると、マイキー" class="flex-1 bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <button onclick="addMember()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition">追加</button>
+      </div>
+      
+      <div id="manager-member-list" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1 bg-slate-900/50 rounded-xl border border-slate-800">
+        </div>
+    </div>
+
+    <div id="add-form-container" class="hidden bg-slate-800/90 border border-slate-700 rounded-2xl shadow-2xl p-6 mb-8 max-w-2xl mx-auto backdrop-blur-md">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">🆕 新規イベント情報の登録</h2>
+        <button onclick="toggleForm('add-form-container')" class="text-slate-400 hover:text-white text-sm">✕ 閉じる</button>
+      </div>
+      <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
-          <label class="block text-xs font-bold text-gray-600 mb-1">開催日 *</label>
-          <input type="date" name="開催日" required class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">開催日 *</label>
+          <input type="date" name="開催日" required class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600 mb-1">イベント名 *</label>
-          <input type="text" name="イベント名" required class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="ライブ・公演名">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">イベント名 *</label>
+          <input type="text" name="イベント名" required class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="ライブ・公演タイトル">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600 mb-1">会場</label>
-          <input type="text" name="会場" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="会場名">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">会場</label>
+          <input type="text" name="会場" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="会場名・サーキット場所">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600 mb-1">URL</label>
-          <input type="url" name="URL" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="https://...">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">URL</label>
+          <input type="url" name="URL" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="https://ticketdive.com/...">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600 mb-1">申し込み締め切り</label>
-          <input type="date" name="申し込み締め切り" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">申し込み締め切り</label>
+          <input type="date" name="申し込み締め切り" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600 mb-1">枠数</label>
-          <input type="number" name="枠数" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="5">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">枠数</label>
+          <input type="number" name="枠数" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="連番上限など">
         </div>
-        <div class="sm:col-span-2 flex justify-end space-x-2 pt-2 border-t mt-2">
-          <button type="button" onclick="toggleForm()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm font-semibold">キャンセル</button>
-          <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm">スプレッドシートに追加</button>
+        <div class="sm:col-span-2 flex justify-end space-x-3 pt-3 border-t border-slate-700 mt-2">
+          <button type="button" onclick="toggleForm('add-form-container')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition">キャンセル</button>
+          <button type="submit" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition">スプレッドシートに送信</button>
         </div>
       </form>
     </div>
 
-    <div id="loading" class="text-center text-gray-500 my-12 text-sm font-medium animate-pulse">データを読み込み中...</div>
+    <div id="loading" class="my-20 text-center">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-4"></div>
+      <p class="text-sm text-slate-400 font-medium tracking-wide">最新のスプレッドシートデータを同期中...</p>
+    </div>
 
     <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </div>
@@ -67,8 +105,51 @@
     // ⚠️ ここにご自身のGASウェブアプリのURLを貼り付け
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwseOQ37SQ_9l7AL6yIaGeuZ7K79yndwdZ6VUxFVIAGQKdy9SJS3IvY3EGpxf0HT0uh/exec";
 
-    function toggleForm() {
-      document.getElementById('add-form-container').classList.toggle('hidden');
+    // ローカルストレージで参戦者リストをブラウザに記憶させる（初期値：なゆ、そると）
+    let members = JSON.parse(localStorage.getItem('ticket_hub_members')) || ["なゆ", "そると"];
+
+    function toggleForm(id) {
+      document.getElementById(id).classList.toggle('hidden');
+      if (id === 'member-manager-container') renderManagerMemberList();
+    }
+
+    // 👥 参戦者マネージャーの描画
+    function renderManagerMemberList() {
+      const wrapper = document.getElementById('manager-member-list');
+      wrapper.innerHTML = '';
+      if(members.length === 0) {
+        wrapper.innerHTML = '<span class="text-xs text-slate-500 p-3">登録メンバーはいません</span>';
+        return;
+      }
+      members.forEach((m, idx) => {
+        const badge = document.createElement('div');
+        badge.className = "flex items-center gap-1.5 bg-slate-800 text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-700 shadow-sm";
+        badge.innerHTML = `
+          <span>👤 ${m}</span>
+          <button onclick="deleteMember(${idx})" class="text-slate-500 hover:text-rose-400 font-bold ml-1 text-sm transition" title="この項目を削除">✕</button>
+        `;
+        wrapper.appendChild(badge);
+      });
+    }
+
+    function addMember() {
+      const input = document.getElementById('new-member-name');
+      const name = input.value.trim();
+      if (!name) return;
+      if (members.includes(name)) { alert("既に同じ名前が存在します"); return; }
+      members.push(name);
+      localStorage.setItem('ticket_hub_members', JSON.stringify(members));
+      input.value = '';
+      renderManagerMemberList();
+      fetchEvents(); // カード側の表示を一斉更新
+    }
+
+    function deleteMember(index) {
+      if(!confirm(`「${members[index]}」の参戦項目を削除しますか？\n（画面上から消えます。スプレッドシート内のメモデータ自体は壊れません）`)) return;
+      members.splice(index, 1);
+      localStorage.setItem('ticket_hub_members', JSON.stringify(members));
+      renderManagerMemberList();
+      fetchEvents();
     }
 
     function parseNumberCell(cellValue) {
@@ -81,7 +162,7 @@
       return { num: str, status: "自分使用" };
     }
 
-    // 1. データ取得と画面描画
+    // 🌌 コアロジック：データ取得とサイバーパンク風スタイリッシュ描画
     async function fetchEvents() {
       const loadingEl = document.getElementById('loading');
       const listEl = document.getElementById('event-list');
@@ -92,83 +173,45 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        // 💡 時差の「15:00:00.000Z（前日15時＝日本時間翌日0時）」を完璧に補正する安全な関数
         const parseToPureDate = (dateStr) => {
           if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
           try {
             const rawStr = String(dateStr);
-            
-            // ISO形式 (2026-06-11T15:00:00.000Z) の場合
             if (rawStr.includes('T')) {
               const parts = rawStr.split('T');
-              const datePart = parts[0]; // "2026-06-11"
-              const timePart = parts[1]; // "15:00:00.000Z"
-              
-              const dParts = datePart.split('-');
-              const year = parseInt(dParts[0], 10);
-              const month = parseInt(dParts[1], 10);
-              const day = parseInt(dParts[2], 10);
-              
-              const d = new Date(year, month - 1, day, 0, 0, 0, 0);
-              
-              // ⚠️ 重要：末尾が「15:00:00...」となっているものは、GASが日本時間の「翌日0時」を世界標準時に誤変換したもの。
-              // そのため、文字だけで切り出すと1日前の日付になってしまうので、ここで確実に1日足して補正します。
-              if (timePart && timePart.startsWith('15:')) {
-                d.setDate(d.getDate() + 1);
-              }
+              const dParts = parts[0].split('-');
+              const d = new Date(parseInt(dParts[0],10), parseInt(dParts[1],10) - 1, parseInt(dParts[2],10), 0,0,0,0);
+              if (parts[1] && parts[1].startsWith('15:')) d.setDate(d.getDate() + 1);
               return d;
             }
-            
-            // それ以外の通常の文字列形式 ("2026-06-11" や "2026/06/11") の場合
             let cleanStr = rawStr.replace(/\//g, '-');
-            if (cleanStr.includes('年')) {
-              cleanStr = cleanStr.replace('年', '-').replace('月', '-').replace('日', '');
-            }
+            if (cleanStr.includes('年')) cleanStr = cleanStr.replace('年', '-').replace('月', '-').replace('日', '');
             const dParts = cleanStr.split('-');
             if (dParts.length < 2) return null;
-            
-            const year = dParts.length === 3 ? parseInt(dParts[0], 10) : new Date().getFullYear();
-            const month = dParts.length === 3 ? parseInt(dParts[1], 10) : parseInt(dParts[0], 10);
-            const day = dParts.length === 3 ? parseInt(dParts[2], 10) : parseInt(dParts[1], 10);
-            
-            return new Date(year, month - 1, day, 0, 0, 0, 0);
-          } catch (e) {
-            return null;
-          }
+            return new Date(dParts.length === 3 ? parseInt(dParts[0],10) : new Date().getFullYear(), (dParts.length === 3 ? parseInt(dParts[1],10) : parseInt(dParts[0],10)) - 1, dParts.length === 3 ? parseInt(dParts[2],10) : parseInt(dParts[1],10), 0,0,0,0);
+          } catch (e) { return null; }
         };
 
-        // 基準となる「今日」と「明日」
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1); tomorrow.setHours(0,0,0,0);
 
-        const tomorrow = new Date();
-        tomorrow.setDate(today.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-
-        // 表示用の日本語表記「XXXX年XX月XX日」を作る関数
         const formatToJapaneseDate = (dateStr) => {
           const d = parseToPureDate(dateStr);
-          if (!d) return '未設定';
+          if (!d) return '日程未定';
           return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         };
 
-        // 二段階ソート（今日・明日締切を最優先）
+        // 2段階最速ソート
         const sortedData = data.sort((a, b) => {
           const aDate = parseToPureDate(a.申し込み締め切り);
           const bDate = parseToPureDate(b.申し込み締め切り);
-
           const aIsUrgent = aDate && (aDate.getTime() === today.getTime() || aDate.getTime() === tomorrow.getTime());
           const bIsUrgent = bDate && (bDate.getTime() === today.getTime() || bDate.getTime() === tomorrow.getTime());
-
           if (aIsUrgent && bIsUrgent) return aDate.getTime() - bDate.getTime();
           if (aIsUrgent && !bIsUrgent) return -1;
           if (!aIsUrgent && bIsUrgent) return 1;
-
-          const aHold = parseToPureDate(a.開催日);
-          const bHold = parseToPureDate(b.開催日);
-          const aTime = aHold ? aHold.getTime() : 9999999999999;
-          const bTime = bHold ? bHold.getTime() : 9999999999999;
-          return aTime - bTime;
+          const aHold = parseToPureDate(a.開催日); const bHold = parseToPureDate(b.開催日);
+          return (aHold ? aHold.getTime() : 9999999999999) - (bHold ? bHold.getTime() : 9999999999999);
         });
 
         loadingEl.style.display = 'none';
@@ -179,74 +222,99 @@
           const isTomorrow = deadlineDateObj && deadlineDateObj.getTime() === tomorrow.getTime();
           const isUrgent = isToday || isTomorrow;
 
-          const borderClass = isUrgent ? "border-2 border-red-500 bg-red-50/20" : "border border-gray-200 bg-white";
+          // 🪐 スタイリッシュボーダーシステム
+          let borderClass = "border border-slate-800 bg-slate-900/60";
+          let badgeClass = "bg-slate-800 text-slate-400 border border-slate-700";
+          if (isUrgent) {
+            borderClass = "border-2 border-gradient-to-r from-rose-500 to-red-600 shadow-xl shadow-rose-950/20 bg-slate-900/90 ring-1 ring-rose-500/20";
+            badgeClass = "bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm font-bold animate-pulse";
+          }
 
           const p1 = parseNumberCell(event.番号1);
           const p2 = parseNumberCell(event.番号2);
-
-          const displayNumbers = [p1, p2]
-            .filter(p => p.num !== "")
-            .map(p => `${p.num}(${p.status.replace('使用','').replace('み','')})`)
-            .join(", ");
+          const displayNumbers = [p1, p2].filter(p => p.num !== "").map(p => `${p.num}(${p.status.replace('使用','').replace('み','')})`).join(", ");
 
           const displayHoldingDate = formatToJapaneseDate(event.開催日);
           const displayDeadlineDate = formatToJapaneseDate(event.申し込み締め切り);
 
-          let mmddDeadline = "（締切未設定）";
+          let mmddDeadline = "（未設定）";
           if (deadlineDateObj) {
-            const m = String(deadlineDateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(deadlineDateObj.getDate()).padStart(2, '0');
-            mmddDeadline = `${m}/${d}〆`;
+            mmddDeadline = `${String(deadlineDateObj.getMonth() + 1).padStart(2, '0')}/${String(deadlineDateObj.getDate()).padStart(2, '0')}〆`;
           }
 
           const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
+          // 動的な参戦者チェックボックスブロックの生成
+          let dynamicMembersHTML = '';
+          members.forEach(m => {
+            // スプレッドシート側のキー（「なゆ」なら「なゆ参戦か」「番号なゆ」を呼び出す仕組み）
+            const checkKey = `${m}参戦か`;
+            const numKey = `番号${m}`;
+            
+            const isChecked = event[checkKey] ? 'checked' : '';
+            const numVal = event[numKey] || '';
+
+            // メンバーごとにちょっと色味を変えるスタイリッシュエフェクト
+            dynamicMembersHTML += `
+              <div class="flex items-center justify-between bg-slate-800/40 p-1.5 px-2.5 rounded-xl border border-slate-800/80">
+                <label class="flex items-center space-x-2.5 cursor-pointer flex-1 py-0.5">
+                  <input type="checkbox" ${isChecked} onchange="updateCell(${event.id}, '${checkKey}', this.checked)" class="w-4 h-4 rounded text-indigo-500 bg-slate-900 border-slate-700 focus:ring-offset-slate-900 focus:ring-indigo-500">
+                  <span class="text-xs font-semibold text-slate-300">👤 ${m} 参戦</span>
+                </label>
+                <div class="flex items-center space-x-1">
+                  <span class="text-[10px] text-slate-500 font-bold">番:</span>
+                  <input type="text" value="${numVal}" onchange="updateCell(${event.id}, '${numKey}', this.value)" class="border border-slate-700 bg-slate-900 w-16 p-1 text-center rounded-md text-xs text-slate-200 focus:border-indigo-500 focus:outline-none font-mono font-bold">
+                </div>
+              </div>
+            `;
+          });
+
           const card = document.createElement('div');
-          card.className = `${borderClass} p-5 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 relative transition hover:shadow-md`;
+          card.className = `${borderClass} p-5 rounded-2xl flex flex-col justify-between space-y-4 relative transition-all duration-300 hover:scale-[1.01] hover:border-slate-700/60`;
           
           card.innerHTML = `
             <div>
-              <div class="flex justify-between items-start mb-3 pr-10">
-                <span class="text-[11px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md border border-indigo-100">${displayHoldingDate}</span>
+              <div class="flex justify-between items-start mb-3.5 pr-10">
+                <span class="text-[10px] font-bold bg-indigo-950/60 text-indigo-400 px-2.5 py-1 rounded-lg border border-indigo-900/50 tracking-wider">${displayHoldingDate}</span>
                 ${event.申し込み締め切り ? `
-                  <span class="text-[11px] font-bold ${isUrgent ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 border border-red-100'} px-2.5 py-1 rounded-md">
-                    ${isToday ? '⚠️ 今日締切！' : isTomorrow ? '⏳ 明日締切！' : '締切: ' + displayDeadlineDate}
+                  <span class="text-[10px] font-bold px-2.5 py-1 rounded-lg tracking-wider ${badgeClass}">
+                    ${isToday ? '⚠️ TODAY DEADLINE' : isTomorrow ? '⏳ TOMORROW' : '〆: ' + displayDeadlineDate}
                   </span>
                 ` : ''}
               </div>
 
-              <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-5 right-4 bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-800 p-1.5 rounded-lg border border-gray-200 transition shadow-sm" title="情報をコピー">
+              <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-5 right-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-lg border border-slate-700 transition shadow-md" title="情報をコピー">
                 📋
               </button>
 
-              <h2 class="text-base font-bold text-gray-900 mb-1.5 leading-snug">${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}</h2>
-              <p class="text-xs text-gray-500 mb-3 flex items-center">📍 ${event.会場 || '未設定'} <span class="mx-2 text-gray-300">|</span> 枠: ${event.枠数 || '-'}</p>
+              <h2 class="text-base font-bold text-white mb-2 leading-snug tracking-tight">${isUrgent ? '🔥 ' : ''}${event.イベント名 || '未設定'}</h2>
+              <p class="text-xs text-slate-400 mb-4 flex items-center gap-1">📍 <span class="text-slate-300 font-medium">${event.会場 || '未設定'}</span> <span class="text-slate-700">|</span> 枠: <span class="text-slate-300 font-bold">${event.枠数 || '-'}</span></p>
               
               ${event.URL ? `
-                <div class="text-[11px] bg-blue-50/50 border border-blue-100 p-2 rounded-lg mb-4">
-                  <span class="font-bold block text-blue-800 mb-0.5">🔗 公式URL:</span>
-                  <a href="${event.URL}" target="_blank" class="text-blue-600 hover:underline break-all block font-medium">${event.URL}</a>
+                <div class="text-[11px] bg-slate-950/40 border border-slate-800 p-2.5 rounded-xl mb-4">
+                  <span class="font-bold block text-indigo-400 mb-0.5">🔗 TICKET LINK:</span>
+                  <a href="${event.URL}" target="_blank" class="text-blue-400 hover:text-blue-300 underline break-all block font-medium transition">${event.URL}</a>
                 </div>
               ` : ''}
               
-              <div class="bg-gray-50/80 border border-gray-100 p-3 rounded-xl text-xs mb-4 space-y-2">
+              <div class="bg-slate-950/20 border border-slate-800 p-3 rounded-xl text-xs mb-4 space-y-2">
                 <div class="flex justify-between items-center">
-                  <span class="font-bold text-gray-500">管理番号:</span>
-                  <span class="font-semibold text-gray-800">${displayNumbers || '未入力'}</span>
+                  <span class="font-bold text-slate-500 uppercase tracking-wider text-[10px]">管理番号</span>
+                  <span class="font-bold text-indigo-300 font-mono">${displayNumbers || '未アサイン'}</span>
                 </div>
                 
-                <div id="inline-edit-${event.id}-nums" class="hidden space-y-3 pt-2.5 border-t border-gray-200">
+                <div id="inline-edit-${event.id}-nums" class="hidden space-y-3 pt-2.5 border-t border-slate-800 animate-fade-in">
                   <div class="space-y-1">
-                    <input type="text" id="edit-${event.id}-num1" value="${p1.num}" placeholder="番号1" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs">
-                    <select id="edit-${event.id}-status1" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs text-gray-700">
+                    <input type="text" id="edit-${event.id}-num1" value="${p1.num}" placeholder="番号1" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-white">
+                    <select id="edit-${event.id}-status1" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-slate-300">
                       <option value="自分使用" ${p1.status === "自分使用" ? "selected" : ""}>自分使用</option>
                       <option value="譲渡前" ${p1.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
                       <option value="譲渡済み" ${p1.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
                     </select>
                   </div>
-                  <div class="space-y-1 border-t border-gray-100 pt-2.5">
-                    <input type="text" id="edit-${event.id}-num2" value="${p2.num}" placeholder="番号2" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs">
-                    <select id="edit-${event.id}-status2" class="border border-gray-300 p-1.5 rounded-md w-full bg-white text-xs text-gray-700">
+                  <div class="space-y-1 border-t border-slate-800 pt-2.5">
+                    <input type="text" id="edit-${event.id}-num2" value="${p2.num}" placeholder="番号2" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-white">
+                    <select id="edit-${event.id}-status2" class="bg-slate-900 border border-slate-700 p-2 rounded-lg w-full text-xs text-slate-300">
                       <option value="自分使用" ${p2.status === "undefined" || p2.status === "自分使用" ? "selected" : ""}>自分使用</option>
                       <option value="譲渡前" ${p2.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
                       <option value="譲渡済み" ${p2.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
@@ -255,65 +323,44 @@
                 </div>
                 
                 <div class="flex justify-between items-center pt-1">
-                  <button onclick="toggleInlineEdit('${event.id}-nums')" class="text-blue-600 hover:text-blue-700 font-medium hover:underline">✏️ 番号と分類を修正</button>
-                  <button onclick="saveMultipleNumbersWithStatus(${event.id})" id="save-${event.id}-nums" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md font-bold shadow-sm">保存</button>
+                  <button onclick="toggleInlineEdit('${event.id}-nums')" class="text-indigo-400 hover:text-indigo-300 font-semibold text-[11px] hover:underline">✏️ 修正する</button>
+                  <button onclick="saveMultipleNumbersWithStatus(${event.id})" id="save-${event.id}-nums" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-md text-[11px] font-bold transition">保存</button>
                 </div>
               </div>
             </div>
 
-            <div class="border-t border-gray-100 pt-3.5 space-y-2.5 text-xs text-gray-700 font-medium">
-              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition">
-                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                <span>🔔 リマインドしたか</span>
+            <div class="border-t border-slate-800/80 pt-3.5 space-y-2 text-xs font-medium">
+              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-slate-800/30 p-1.5 px-2.5 rounded-xl transition">
+                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 rounded text-blue-500 bg-slate-900 border-slate-700 focus:ring-indigo-500">
+                <span class="text-slate-300">🔔 リマインド通知</span>
               </label>
 
-              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition">
-                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                <span>✅ 申し込み済み</span>
+              <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-800/30 p-1.5 px-2.5 rounded-xl transition">
+                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-indigo-500">
+                <span class="text-slate-300">✅ 本申し込み完了</span>
               </label>
 
-              <div class="flex items-center justify-between border-t border-gray-100 pt-2.5 mt-1.5">
-                <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition flex-1">
-                  <input type="checkbox" ${event.なゆ参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'なゆ参戦か', this.checked)" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
-                  <span>なゆ参戦</span>
-                </label>
-                <div class="flex items-center space-x-1.5">
-                  <span class="text-[11px] text-gray-400 font-bold">番:</span>
-                  <input type="text" id="input-nayunum-${event.id}" value="${event.番号なゆ || ''}" onchange="updateCell(${event.id}, '番号なゆ', this.value)" class="border border-gray-300 w-16 p-1 text-center rounded-md bg-gray-50 focus:bg-white focus:ring-1 focus:ring-pink-500 focus:outline-none font-semibold text-gray-800">
-                </div>
-              </div>
-
-              <div class="flex items-center justify-between">
-                <label class="flex items-center space-x-2.5 cursor-pointer hover:bg-gray-50 p-1 rounded transition flex-1">
-                  <input type="checkbox" ${event.そると参戦か ? 'checked' : ''} onchange="updateCell(${event.id}, 'そると参戦か', this.checked)" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                  <span>そると参戦</span>
-                </label>
-                <div class="flex items-center space-x-1.5">
-                  <span class="text-[11px] text-gray-400 font-bold">番:</span>
-                  <input type="text" id="input-soltnum-${event.id}" value="${event.番号そると || ''}" onchange="updateCell(${event.id}, '番号そると', this.value)" class="border border-gray-300 w-16 p-1 text-center rounded-md bg-gray-50 focus:bg-white focus:ring-1 focus:ring-green-500 focus:outline-none font-semibold text-gray-800">
-                </div>
+              <div class="pt-2 border-t border-slate-800/60 space-y-2">
+                ${dynamicMembersHTML}
               </div>
             </div>
           `;
           listEl.appendChild(card);
         });
       } catch (error) {
-        loadingEl.textContent = "データの読み込みに失敗しました。";
+        loadingEl.textContent = "同期エラーが発生しました。接続を確認してください。";
         console.error(error);
       }
     }
 
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
-        alert("📋 情報をコピーしました！");
+        alert("📋 現場用テキストをコピーしました！");
       }).catch(err => {
         const textarea = document.createElement("textarea");
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-        alert("📋 情報をコピーしました！");
+        textarea.value = text; document.body.appendChild(textarea); textarea.select();
+        document.execCommand("copy"); document.body.removeChild(textarea);
+        alert("📋 現場用テキストをコピーしました！");
       });
     }
 
@@ -325,37 +372,24 @@
     async function saveMultipleNumbersWithStatus(rowId) {
       const n1 = document.getElementById(`edit-${rowId}-num1`).value;
       const s1 = document.getElementById(`edit-${rowId}-status1`).value;
-      const val1 = n1 ? `${n1}:${s1}` : "";
-
+      await updateCell(rowId, '番号1', n1 ? `${n1}:${s1}` : "");
       const n2 = document.getElementById(`edit-${rowId}-num2`).value;
       const s2 = document.getElementById(`edit-${rowId}-status2`).value;
-      const val2 = n2 ? `${n2}:${s2}` : "";
-
-      await updateCell(rowId, '番号1', val1);
-      await updateCell(rowId, '番号2', val2);
-      
-      alert("番号と分類を更新しました！");
+      await updateCell(rowId, '番号2', n2 ? `${n2}:${s2}` : "");
+      alert("管理ステータスを同期しました");
       fetchEvents();
     }
 
     async function updateCell(rowId, columnName, value) {
       const payload = { id: rowId, column: columnName, value: value };
       try {
-        await fetch(GAS_API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      } catch (error) {
-        console.error("更新エラー:", error);
-      }
+        await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      } catch (error) { console.error("セル更新エラー:", error); }
     }
 
     async function addEvent(e) {
       e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
+      const form = e.target; const formData = new FormData(form);
       const payload = {
         action: "insert",
         開催日: formData.get("開催日"),
@@ -365,16 +399,11 @@
         申し込み締め切り: formData.get("申し込み締め切り"),
         枠数: formData.get("枠数")
       };
-
       try {
         await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        alert("新規イベントを追加しました！");
-        form.reset();
-        toggleForm();
-        fetchEvents();
-      } catch (error) {
-        alert("追加に失敗しました。");
-      }
+        alert("スプレッドシートへの追加が成功しました！");
+        form.reset(); toggleForm('add-form-container'); fetchEvents();
+      } catch (error) { alert("追加に失敗しました。"); }
     }
 
     window.onload = fetchEvents;
