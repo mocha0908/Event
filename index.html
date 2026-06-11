@@ -93,59 +93,62 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        const getJstDateString = (dateObj) => {
-          const y = dateObj.getFullYear();
-          const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-          const d = String(dateObj.getDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
+        // 💡 どんな文字形式の日付データが来ても、時間を00:00:00にした「純粋な日付オブジェクト」に直す関数
+        const parseToPureDate = (dateStr) => {
+          if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
+          // スラッシュをハイフンに置換、T以降（時間）をカット
+          let cleanStr = String(dateStr).split('T')[0].replace(/\//g, '-');
+          const d = new Date(cleanStr);
+          if (isNaN(d.getTime())) return null; // 正しく日付変換できない文字ならnull
+          d.setHours(0, 0, 0, 0); // 時間を完全にリセット
+          return d;
         };
 
-        const now = new Date();
-        const todayStr = getJstDateString(now);
+        // 基準となる「今日」と「明日」を時間リセット状態で作る
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const tomorrow = new Date();
-        tomorrow.setDate(now.getDate() + 1);
-        const tomorrowStr = getJstDateString(tomorrow);
+        tomorrow.setDate(today.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
 
-        // 💡 開催日「未設定」バグを完全に修正した日付フォーマット関数
+        // 表示用の日本語表記「XXXX年XX月XX日」を作る関数
         const formatToJapaneseDate = (dateStr) => {
-          if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return '未設定';
-          
-          // すでに日本語表記に変換されている場合はそのまま返す
-          if (typeof dateStr === 'string' && dateStr.includes('年')) return dateStr;
-
-          // ISO文字列 (2026-06-11T00:00:00.000Z形式など) の場合は日付部分だけ引っこ抜く
-          let cleanStr = String(dateStr).split('T')[0];
-          cleanStr = cleanStr.replace(/\//g, '-'); // スラッシュをハイフンに統一
-          
-          const parts = cleanStr.split('-');
-          if (parts.length < 2) return dateStr; // 分割できない不規則な形式ならそのまま出す
-
-          // 年が省略されて届いた場合（GASの挙動対策）
-          if (parts.length === 2) {
-            return `${Number(parts[0])}月${Number(parts[1])}日`;
-          }
-
-          return `${parts[0]}年${Number(parts[1])}月${Number(parts[2])}日`;
+          const d = parseToPureDate(dateStr);
+          if (!d) return '未設定';
+          return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         };
 
-        // 締切優先の二段階ソート
+        // 💡 タイムスタンプ（ミリ秒）で確実に比較する二段階ソート
         const sortedData = data.sort((a, b) => {
-          const aIsUrgent = (a.申し込み締め切り === todayStr || a.申し込み締め切り === tomorrowStr);
-          const bIsUrgent = (b.申し込み締め切り === todayStr || b.申し込み締め切り === tomorrowStr);
+          const aDate = parseToPureDate(a.申し込み締め切り);
+          const bDate = parseToPureDate(b.申し込み締め切り);
+
+          const aIsUrgent = aDate && (aDate.getTime() === today.getTime() || aDate.getTime() === tomorrow.getTime());
+          const bIsUrgent = bDate && (bDate.getTime() === today.getTime() || bDate.getTime() === tomorrow.getTime());
 
           if (aIsUrgent && bIsUrgent) {
-            return new Date(a.申し込み締め切り) - new Date(b.申し込み締め切り);
+            return aDate.getTime() - bDate.getTime(); // どちらも今日明日のときは、より直近の締切を上に
           }
-          if (aIsUrgent && !bIsUrgent) return -1;
-          if (!aIsUrgent && bIsUrgent) return 1;
+          if (aIsUrgent && !bIsUrgent) return -1; // aが緊急なら上へ
+          if (!aIsUrgent && bIsUrgent) return 1;  // bが緊急なら上へ
 
-          return new Date(a.開催日) - new Date(b.開催日);
+          // 通常データ同士は「開催日」が近い順（開催日がないデータは後ろへ）
+          const aHold = parseToPureDate(a.開催日);
+          const bHold = parseToPureDate(b.開催日);
+          if (!aHold) return 1;
+          if (!bHold) return -1;
+          return aHold.getTime() - bHold.getTime();
         });
 
         loadingEl.style.display = 'none';
 
         sortedData.forEach(event => {
-          const isUrgent = (event.申し込み締め切り === todayStr || event.申し込み締め切り === tomorrowStr);
+          const deadlineDateObj = parseToPureDate(event.申し込み締め切り);
+          const isToday = deadlineDateObj && deadlineDateObj.getTime() === today.getTime();
+          const isTomorrow = deadlineDateObj && deadlineDateObj.getTime() === tomorrow.getTime();
+          const isUrgent = isToday || isTomorrow;
+
           const borderClass = isUrgent ? "border-2 border-red-500 bg-red-50/20" : "border border-gray-200 bg-white";
 
           const p1 = parseNumberCell(event.番号1);
@@ -159,22 +162,14 @@
           const displayHoldingDate = formatToJapaneseDate(event.開催日);
           const displayDeadlineDate = formatToJapaneseDate(event.申し込み締め切り);
 
-          const card = document.createElement('div');
-          card.className = `${borderClass} p-5 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 relative transition hover:shadow-md`;
-          
-          // コピペ用の「月日〆」を計算
+          // 💡 コピペ用の「月日〆」を計算（ここも日付オブジェクトベースに修正）
           let mmddDeadline = "（締切未設定）";
-          if (event.申し込み締め切り && event.申し込み締め切り !== "null") {
-            const cleanDl = String(event.申し込み締め切り).split('T')[0].replace(/\//g, '-');
-            const parts = cleanDl.split('-');
-            if (parts.length === 3) {
-              mmddDeadline = `${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}〆`;
-            } else if (parts.length === 2) {
-              mmddDeadline = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}〆`;
-            }
+          if (deadlineDateObj) {
+            const m = String(deadlineDateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(deadlineDateObj.getDate()).padStart(2, '0');
+            mmddDeadline = `${m}/${d}〆`;
           }
 
-          // 改行テキストデータを作成
           const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
           card.innerHTML = `
@@ -183,7 +178,7 @@
                 <span class="text-[11px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md border border-indigo-100">${displayHoldingDate}</span>
                 ${event.申し込み締め切り ? `
                   <span class="text-[11px] font-bold ${isUrgent ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 border border-red-100'} px-2.5 py-1 rounded-md">
-                    ${event.申し込み締め切り === todayStr ? '⚠️ 今日締切！' : event.申し込み締め切り === tomorrowStr ? '⏳ 明日締切！' : '締切: ' + displayDeadlineDate}
+                    ${isToday ? '⚠️ 今日締切！' : isTomorrow ? '⏳ 明日締切！' : '締切: ' + displayDeadlineDate}
                   </span>
                 ` : ''}
               </div>
@@ -275,7 +270,6 @@
       }
     }
 
-    // クリップボードへのコピー関数
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
         alert("📋 情報をコピーしました！");
