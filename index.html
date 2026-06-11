@@ -93,18 +93,25 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        // 💡 どんな文字形式の日付データが来ても、時間を00:00:00にした「純粋な日付オブジェクト」に直す関数
+        // 💡 エラーで絶対に画面を止めない、超安全な日付パース関数
         const parseToPureDate = (dateStr) => {
           if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
-          // スラッシュをハイフンに置換、T以降（時間）をカット
-          let cleanStr = String(dateStr).split('T')[0].replace(/\//g, '-');
-          const d = new Date(cleanStr);
-          if (isNaN(d.getTime())) return null; // 正しく日付変換できない文字ならnull
-          d.setHours(0, 0, 0, 0); // 時間を完全にリセット
-          return d;
+          try {
+            let cleanStr = String(dateStr).split('T')[0].replace(/\//g, '-');
+            // もし「2026年6月11日」みたいな文字が迷い込んできたら変換を試みる
+            if (cleanStr.includes('年')) {
+              cleanStr = cleanStr.replace('年', '-').replace('月', '-').replace('日', '');
+            }
+            const d = new Date(cleanStr);
+            if (isNaN(d.getTime())) return null;
+            d.setHours(0, 0, 0, 0);
+            return d;
+          } catch (e) {
+            return null; // 万が一バグってもnullを返して次に進む
+          }
         };
 
-        // 基準となる「今日」と「明日」を時間リセット状態で作る
+        // 基準となる「今日」と「明日」
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -119,7 +126,7 @@
           return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         };
 
-        // 💡 タイムスタンプ（ミリ秒）で確実に比較する二段階ソート
+        // 💡 エラー落ちをガードした安全な二段階ソート
         const sortedData = data.sort((a, b) => {
           const aDate = parseToPureDate(a.申し込み締め切り);
           const bDate = parseToPureDate(b.申し込み締め切り);
@@ -127,18 +134,16 @@
           const aIsUrgent = aDate && (aDate.getTime() === today.getTime() || aDate.getTime() === tomorrow.getTime());
           const bIsUrgent = bDate && (bDate.getTime() === today.getTime() || bDate.getTime() === tomorrow.getTime());
 
-          if (aIsUrgent && bIsUrgent) {
-            return aDate.getTime() - bDate.getTime(); // どちらも今日明日のときは、より直近の締切を上に
-          }
-          if (aIsUrgent && !bIsUrgent) return -1; // aが緊急なら上へ
-          if (!aIsUrgent && bIsUrgent) return 1;  // bが緊急なら上へ
+          if (aIsUrgent && bIsUrgent) return aDate.getTime() - bDate.getTime();
+          if (aIsUrgent && !bIsUrgent) return -1;
+          if (!aIsUrgent && bIsUrgent) return 1;
 
-          // 通常データ同士は「開催日」が近い順（開催日がないデータは後ろへ）
+          // 通常データ同士は「開催日」順
           const aHold = parseToPureDate(a.開催日);
           const bHold = parseToPureDate(b.開催日);
-          if (!aHold) return 1;
-          if (!bHold) return -1;
-          return aHold.getTime() - bHold.getTime();
+          const aTime = aHold ? aHold.getTime() : 9999999999999; // 日付なしは一番後ろへ
+          const bTime = bHold ? bHold.getTime() : 9999999999999;
+          return aTime - bTime;
         });
 
         loadingEl.style.display = 'none';
@@ -162,7 +167,7 @@
           const displayHoldingDate = formatToJapaneseDate(event.開催日);
           const displayDeadlineDate = formatToJapaneseDate(event.申し込み締め切り);
 
-          // 💡 コピペ用の「月日〆」を計算（ここも日付オブジェクトベースに修正）
+          // コピペ用の「月日〆」を計算
           let mmddDeadline = "（締切未設定）";
           if (deadlineDateObj) {
             const m = String(deadlineDateObj.getMonth() + 1).padStart(2, '0');
@@ -172,6 +177,9 @@
 
           const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
+          const card = document.createElement('div');
+          card.className = `${borderClass} p-5 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 relative transition hover:shadow-md`;
+          
           card.innerHTML = `
             <div>
               <div class="flex justify-between items-start mb-3 pr-10">
@@ -266,7 +274,8 @@
           listEl.appendChild(card);
         });
       } catch (error) {
-        loadingEl.textContent = "データの読み込みに失敗しました。";
+        loadingEl.textContent = "データの読み込みに失敗しました。詳細エラーはブラウザのコンソールを確認してください。";
+        console.error(error);
       }
     }
 
