@@ -92,27 +92,46 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        // 💡 GASからの「T15:00:00.000Z」などの時差バグを完全にすり潰す最強の関数
+        // 💡 時差の「15:00:00.000Z（前日15時＝日本時間翌日0時）」を完璧に補正する安全な関数
         const parseToPureDate = (dateStr) => {
           if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
           try {
-            // 後ろについてくる時間を「T」の部分でバッサリ切り捨てて、純粋な日付の文字だけにする
-            let cleanStr = String(dateStr).split('T')[0].replace(/\//g, '-');
+            const rawStr = String(dateStr);
+            
+            // ISO形式 (2026-06-11T15:00:00.000Z) の場合
+            if (rawStr.includes('T')) {
+              const parts = rawStr.split('T');
+              const datePart = parts[0]; // "2026-06-11"
+              const timePart = parts[1]; // "15:00:00.000Z"
+              
+              const dParts = datePart.split('-');
+              const year = parseInt(dParts[0], 10);
+              const month = parseInt(dParts[1], 10);
+              const day = parseInt(dParts[2], 10);
+              
+              const d = new Date(year, month - 1, day, 0, 0, 0, 0);
+              
+              // ⚠️ 重要：末尾が「15:00:00...」となっているものは、GASが日本時間の「翌日0時」を世界標準時に誤変換したもの。
+              // そのため、文字だけで切り出すと1日前の日付になってしまうので、ここで確実に1日足して補正します。
+              if (timePart && timePart.startsWith('15:')) {
+                d.setDate(d.getDate() + 1);
+              }
+              return d;
+            }
+            
+            // それ以外の通常の文字列形式 ("2026-06-11" や "2026/06/11") の場合
+            let cleanStr = rawStr.replace(/\//g, '-');
             if (cleanStr.includes('年')) {
               cleanStr = cleanStr.replace('年', '-').replace('月', '-').replace('日', '');
             }
+            const dParts = cleanStr.split('-');
+            if (dParts.length < 2) return null;
             
-            const parts = cleanStr.split('-');
-            if (parts.length < 2) return null;
-
-            let year = parts.length === 3 ? parseInt(parts[0], 10) : new Date().getFullYear();
-            let month = parts.length === 3 ? parseInt(parts[1], 10) : parseInt(parts[0], 10);
-            let day = parts.length === 3 ? parseInt(parts[2], 10) : parseInt(parts[1], 10);
-
-            // 時差の計算を一切挟まないように、日本のスマホ・PCの時間（ローカル環境）の00:00として組み立てる
-            const d = new Date(year, month - 1, day, 0, 0, 0, 0);
-            if (isNaN(d.getTime())) return null;
-            return d;
+            const year = dParts.length === 3 ? parseInt(dParts[0], 10) : new Date().getFullYear();
+            const month = dParts.length === 3 ? parseInt(dParts[1], 10) : parseInt(dParts[0], 10);
+            const day = dParts.length === 3 ? parseInt(dParts[2], 10) : parseInt(dParts[1], 10);
+            
+            return new Date(year, month - 1, day, 0, 0, 0, 0);
           } catch (e) {
             return null;
           }
