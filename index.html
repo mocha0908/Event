@@ -1,4 +1,85 @@
-// 1. データ取得と画面描画（時差バケ修正・日付フォーマット変更版）
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>イベント・チケ管理アプリ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+  <div class="max-w-6xl mx-auto">
+    <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <h1 class="text-2xl font-bold text-gray-800">📅 イベント・チケ管理</h1>
+      <div class="flex space-x-2">
+        <button onclick="toggleForm()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded shadow transition font-semibold">
+          ＋ イベント追加
+        </button>
+        <button onclick="fetchEvents()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow transition">
+          🔄 更新
+        </button>
+      </div>
+    </header>
+
+    <div id="add-form-container" class="hidden bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8 max-w-2xl mx-auto">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">🆕 新しいイベントの追加</h2>
+      <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">開催日 *</label>
+          <input type="date" name="開催日" required class="w-full border p-2 rounded text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">イベント名 *</label>
+          <input type="text" name="イベント名" required class="w-full border p-2 rounded text-sm" placeholder="ライブ・公演名">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">会場</label>
+          <input type="text" name="会場" class="w-full border p-2 rounded text-sm" placeholder="会場名">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">URL</label>
+          <input type="url" name="URL" class="w-full border p-2 rounded text-sm" placeholder="https://...">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">申し込み締め切り</label>
+          <input type="date" name="申し込み締め切り" class="w-full border p-2 rounded text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">枠数</label>
+          <input type="number" name="枠数" class="w-full border p-2 rounded text-sm" placeholder="5">
+        </div>
+        <div class="sm:col-span-2 flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="toggleForm()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm">キャンセル</button>
+          <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded text-sm font-bold shadow">スプレッドシートに追加</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="loading" class="text-center text-gray-500 my-8">データを読み込み中...</div>
+
+    <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
+
+  <script>
+    // ⚠️ ここにご自身のGASウェブアプリのURLを貼り付け
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwseOQ37SQ_9l7AL6yIaGeuZ7K79yndwdZ6VUxFVIAGQKdy9SJS3IvY3EGpxf0HT0uh/exec";
+
+    function toggleForm() {
+      document.getElementById('add-form-container').classList.toggle('hidden');
+    }
+
+    // セルデータから「番号」と「ステータス」を切り分ける
+    function parseNumberCell(cellValue) {
+      if (!cellValue) return { num: "", status: "自分使用" };
+      const str = String(cellValue);
+      if (str.includes(":")) {
+        const parts = str.split(":");
+        return { num: parts[0], status: parts[1] };
+      }
+      return { num: str, status: "自分使用" };
+    }
+
+    // 1. データ取得と画面描画
     async function fetchEvents() {
       const loadingEl = document.getElementById('loading');
       const listEl = document.getElementById('event-list');
@@ -9,7 +90,7 @@
         const response = await fetch(GAS_API_URL);
         const data = await response.json();
 
-        // 💡 日本時間（JST）ベースで「今日」と「明日」の文字列（YYYY-MM-DD）を作る
+        // 日本時間ベースで「今日」と「明日」の文字列（YYYY-MM-DD）を作る
         const getJstDateString = (dateObj) => {
           const y = dateObj.getFullYear();
           const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -18,13 +99,12 @@
         };
 
         const now = new Date();
-        const todayStr = getJstDateString(now); // 例: "2026-06-11"
-        
+        const todayStr = getJstDateString(now);
         const tomorrow = new Date();
         tomorrow.setDate(now.getDate() + 1);
-        const tomorrowStr = getJstDateString(tomorrow); // 例: "2026-06-12"
+        const tomorrowStr = getJstDateString(tomorrow);
 
-        // 💡 日付を「XXXX年XX月XX日」に変換するヘルパー関数
+        // 日付を「XXXX年XX月XX日」に変換する
         const formatToJapaneseDate = (dateStr) => {
           if (!dateStr) return '未設定';
           const parts = dateStr.split('-');
@@ -32,20 +112,17 @@
           return `${parts[0]}年${Number(parts[1])}月${Number(parts[2])}日`;
         };
 
-        // 💡 締切優先の2段階ソートロジック
+        // 締切優先の二段階ソート
         const sortedData = data.sort((a, b) => {
           const aIsUrgent = (a.申し込み締め切り === todayStr || a.申し込み締め切り === tomorrowStr);
           const bIsUrgent = (b.申し込み締め切り === todayStr || b.申し込み締め切り === tomorrowStr);
 
-          // どちらも今日・明日締め切りの場合は、締切日が近い方を上に
           if (aIsUrgent && bIsUrgent) {
             return new Date(a.申し込み締め切り) - new Date(b.申し込み締め切り);
           }
-          // 片方だけが今日・明日締め切りなら、それを最優先で上に
           if (aIsUrgent && !bIsUrgent) return -1;
           if (!aIsUrgent && bIsUrgent) return 1;
 
-          // 通常データ同士は「開催日」が近い順
           return new Date(a.開催日) - new Date(b.開催日);
         });
 
@@ -53,9 +130,8 @@
 
         sortedData.forEach(event => {
           const isUrgent = (event.申し込み締め切り === todayStr || event.申し込み締め切り === tomorrowStr);
-          const borderClass = isUrgent ? "border-2 border-red-500 bg-red-50/30 animate-pulse-subtle" : "border-gray-200 bg-white";
+          const borderClass = isUrgent ? "border-2 border-red-500 bg-red-50/30" : "border-gray-200 bg-white";
 
-          // 番号データのパース
           const p1 = parseNumberCell(event.番号1);
           const p2 = parseNumberCell(event.番号2);
           const p3 = parseNumberCell(event.番号3);
@@ -65,7 +141,6 @@
             .map(p => `${p.num}(${p.status.replace('使用','').replace('み','')})`)
             .join(", ");
 
-          // 日付の表示形式を「年月日」に変換
           const displayHoldingDate = formatToJapaneseDate(event.開催日);
           const displayDeadlineDate = formatToJapaneseDate(event.申し込み締め切り);
 
@@ -164,3 +239,68 @@
         loadingEl.textContent = "データの読み込みに失敗しました。";
       }
     }
+
+    function toggleInlineEdit(idKey) {
+      document.getElementById(`inline-edit-${idKey}`).classList.toggle('hidden');
+      document.getElementById(`save-${idKey}`).classList.toggle('hidden');
+    }
+
+    async function saveMultipleNumbersWithStatus(rowId) {
+      const n1 = document.getElementById(`edit-${rowId}-num1`).value;
+      const s1 = document.getElementById(`edit-${rowId}-status1`).value;
+      const val1 = n1 ? `${n1}:${s1}` : "";
+
+      const n2 = document.getElementById(`edit-${rowId}-num2`).value;
+      const s2 = document.getElementById(`edit-${rowId}-status2`).value;
+      const val2 = n2 ? `${n2}:${s2}` : "";
+
+      await updateCell(rowId, '番号1', val1);
+      await updateCell(rowId, '番号2', val2);
+      
+      alert("番号と分類を更新しました！");
+      fetchEvents();
+    }
+
+    async function updateCell(rowId, columnName, value) {
+      const payload = { id: rowId, column: columnName, value: value };
+      try {
+        await fetch(GAS_API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        console.error("更新エラー:", error);
+      }
+    }
+
+    async function addEvent(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const payload = {
+        action: "insert",
+        開催日: formData.get("開催日"),
+        イベント名: formData.get("イベント名"),
+        会場: formData.get("会場"),
+        URL: formData.get("URL"),
+        申し込み締め切り: formData.get("申し込み締め切り"),
+        枠数: formData.get("枠数")
+      };
+
+      try {
+        await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        alert("新規イベントを追加しました！");
+        form.reset();
+        toggleForm();
+        fetchEvents();
+      } catch (error) {
+        alert("追加に失敗しました。");
+      }
+    }
+
+    window.onload = fetchEvents;
+  </script>
+</body>
+</html>
