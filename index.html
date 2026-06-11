@@ -27,17 +27,17 @@
           イベント追加
         </button>
         <button onclick="toggleForm('member-manager-container')" class="flex-1 sm:flex-none bg-white hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-lg font-medium text-xs border border-gray-200 transition duration-150">
-          参戦者の管理
+          参戦者の一括管理
         </button>
         <button onclick="fetchEvents()" class="bg-white hover:bg-gray-50 text-gray-400 p-2 rounded-lg border border-gray-200 transition duration-150" title="更新">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path></svg>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2 Executive 8H18"></path></svg>
         </button>
       </div>
     </header>
 
     <div id="member-manager-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-8 max-w-md mx-auto">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase">参戦メンバーの設定</h2>
+        <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase">参戦メンバーの設定（一括）</h2>
         <button onclick="toggleForm('member-manager-container')" class="text-gray-400 hover:text-gray-600 text-xs">✕</button>
       </div>
       <div class="flex gap-2 mb-4">
@@ -93,6 +93,9 @@
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwseOQ37SQ_9l7AL6yIaGeuZ7K79yndwdZ6VUxFVIAGQKdy9SJS3IvY3EGpxf0HT0uh/exec";
 
     let members = JSON.parse(localStorage.getItem('ticket_hub_members')) || ["なゆ", "そると"];
+    
+    // カードごとの仮編集用メモリ
+    let localEditingNumbers = {};
 
     function toggleForm(id) {
       document.getElementById(id).classList.toggle('hidden');
@@ -136,14 +139,32 @@
       fetchEvents();
     }
 
-    function parseNumberCell(cellValue) {
-      if (!cellValue || cellValue === "null" || cellValue === "undefined") return { num: "", status: "自分使用" };
-      const str = String(cellValue).trim();
-      if (str.includes(":")) {
-        const parts = str.split(":");
-        return { num: parts[0], status: parts[1] };
+    // 🔴 セル内の複合データをパースするロジック (例: "番号1:12番:自分使用;;発券コード:abc:譲渡前")
+    function parseNumbersString(cellValue) {
+      if (!cellValue || cellValue === "null" || cellValue === "undefined" || String(cellValue).trim() === "") {
+        // 初期値として空配列を返す
+        return [];
       }
-      return { num: str, status: "自分使用" };
+      const rawStr = String(cellValue).trim();
+      // 旧バージョンのデータ（単一の "12番:自分使用" 形式）の救済措置
+      if (!rawStr.includes(';;') && rawStr.includes(':') && rawStr.split(':').length === 2) {
+        const p = rawStr.split(':');
+        return [{ label: "番号1", num: p[0], status: p[1] }];
+      }
+      
+      const items = rawStr.split(';;');
+      const result = [];
+      items.forEach(item => {
+        const parts = item.split(':');
+        if (parts.length >= 2) {
+          result.push({
+            label: parts[0] || "番号",
+            num: parts[1] || "",
+            status: parts[2] || "自分使用"
+          });
+        }
+      });
+      return result;
     }
 
     async function fetchEvents() {
@@ -204,17 +225,12 @@
           const isTomorrow = deadlineDateObj && deadlineDateObj.getTime() === tomorrow.getTime();
           const isUrgent = isToday || isTomorrow;
 
-          // ─── 静かで上品なデザイン分け ───
           let cardClass = "bg-white border border-gray-200";
           let badgeClass = "bg-gray-100 text-gray-600";
           if (isUrgent) {
             cardClass = "bg-white border-2 border-red-500 shadow-sm";
             badgeClass = "bg-red-50 text-red-600 font-medium";
           }
-
-          const p1 = parseNumberCell(event.番号1);
-          const p2 = parseNumberCell(event.番号2);
-          const displayNumbers = [p1, p2].filter(p => p.num !== "").map(p => `${p.num}(${p.status.replace('使用','').replace('み','')})`).join(", ");
 
           const displayHoldingDate = formatToJapaneseDate(event.開催日);
           const displayDeadlineDate = formatToJapaneseDate(event.申し込み締め切り);
@@ -226,6 +242,18 @@
 
           const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
+          // 番号1のセルから、このカードに紐づいている複数の番号データをパースする
+          const parsedNumbers = parseNumbersString(event.番号1);
+          if (!localEditingNumbers[event.id]) {
+            localEditingNumbers[event.id] = parsedNumbers.length > 0 ? parsedNumbers : [{ label: "番号1", num: "", status: "自分使用" }];
+          }
+
+          const displayNumbersText = localEditingNumbers[event.id]
+            .filter(p => p.num !== "")
+            .map(p => `${p.num}(${p.status.replace('使用','').replace('み','')})`)
+            .join(", ");
+
+          // 👥 動的参戦者チェックボックスの組み立て
           let dynamicMembersHTML = '';
           members.forEach(m => {
             const checkKey = `${m}参戦か`;
@@ -275,33 +303,19 @@
               ` : ''}
               
               <div class="bg-gray-50 p-2.5 rounded-lg text-xs mt-4 space-y-1.5">
-                <div class="flex justify-between items-center">
-                  <span class="text-[10px] text-gray-400">管理番号</span>
-                  <span class="font-medium text-gray-800">${displayNumbers || '未入力'}</span>
+                <div class="flex justify-between items-start">
+                  <span class="text-[10px] text-gray-400 mt-0.5">管理番号</span>
+                  <span class="font-medium text-gray-800 text-right max-w-[180px] break-words">${displayNumbersText || '未入力'}</span>
                 </div>
                 
                 <div id="inline-edit-${event.id}-nums" class="hidden space-y-2 pt-2 border-t border-gray-200">
-                  <div class="flex gap-1.5">
-                    <input type="text" id="edit-${event.id}-num1" value="${p1.num}" placeholder="番号1" class="bg-white border border-gray-200 p-1 rounded w-full text-xs">
-                    <select id="edit-${event.id}-status1" class="bg-white border border-gray-200 p-1 rounded text-xs text-gray-600">
-                      <option value="自分使用" ${p1.status === "自分使用" ? "selected" : ""}>自分使用</option>
-                      <option value="譲渡前" ${p1.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
-                      <option value="譲渡済み" ${p1.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
-                    </select>
-                  </div>
-                  <div class="flex gap-1.5">
-                    <input type="text" id="edit-${event.id}-num2" value="${p2.num}" placeholder="番号2" class="bg-white border border-gray-200 p-1 rounded w-full text-xs">
-                    <select id="edit-${event.id}-status2" class="bg-white border border-gray-200 p-1 rounded text-xs text-gray-600">
-                      <option value="自分使用" ${p2.status === "undefined" || p2.status === "自分使用" ? "selected" : ""}>自分使用</option>
-                      <option value="譲渡前" ${p2.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
-                      <option value="譲渡済み" ${p2.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
-                    </select>
-                  </div>
+                  <div id="edit-inputs-list-${event.id}"></div>
+                  <button onclick="addNewRowToCard(${event.id})" class="text-[10px] text-blue-600 hover:underline block pt-1">＋ 入力欄を追加する</button>
                 </div>
                 
                 <div class="flex justify-between items-center pt-0.5">
-                  <button onclick="toggleInlineEdit('${event.id}-nums')" class="text-gray-400 hover:text-gray-600 text-[10px]">編集</button>
-                  <button onclick="saveMultipleNumbersWithStatus(${event.id})" id="save-${event.id}-nums" class="hidden bg-gray-900 text-white px-2 py-0.5 rounded text-[10px]">保存</button>
+                  <button onclick="toggleCardEdit(${event.id})" class="text-gray-400 hover:text-gray-600 text-[10px]">編集</button>
+                  <button onclick="saveCardNumbers(${event.id})" id="save-${event.id}-nums" class="hidden bg-gray-900 text-white px-2 py-0.5 rounded text-[10px]">保存</button>
                 </div>
               </div>
             </div>
@@ -330,6 +344,72 @@
       }
     }
 
+    // カードごとの編集トグル＆入力要素のオンデマンド生成
+    function toggleCardEdit(rowId) {
+      const container = document.getElementById(`inline-edit-${rowId}-nums`);
+      const saveBtn = document.getElementById(`save-${rowId}-nums`);
+      const isHidden = container.classList.contains('hidden');
+      
+      container.classList.toggle('hidden');
+      saveBtn.classList.toggle('hidden');
+
+      if (isHidden) {
+        renderEditRows(rowId);
+      }
+    }
+
+    // 編集用インプット行の描画
+    function renderEditRows(rowId) {
+      const listContainer = document.getElementById(`edit-inputs-list-${rowId}`);
+      listContainer.innerHTML = '';
+      
+      localEditingNumbers[rowId].forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = "flex gap-1 items-center mb-1.5";
+        row.innerHTML = `
+          <input type="text" value="${item.label}" onchange="localEditingNumbers(${rowId})[${idx}].label=this.value" placeholder="項目名" class="bg-white border border-gray-200 p-1 rounded w-16 text-[10px] text-gray-500 font-bold">
+          <input type="text" value="${item.num}" onchange="localEditingNumbers(${rowId})[${idx}].num=this.value" placeholder="番号" class="bg-white border border-gray-200 p-1 rounded flex-1 text-xs">
+          <select onchange="localEditingNumbers(${rowId})[${idx}].status=this.value" class="bg-white border border-gray-200 p-1 rounded text-xs text-gray-600">
+            <option value="自分使用" ${item.status === "自分使用" ? "selected" : ""}>自分使用</option>
+            <option value="譲渡前" ${item.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
+            <option value="譲渡済み" ${item.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
+          </select>
+          <button onclick="removeRowFromCard(${rowId}, ${idx})" class="text-gray-300 hover:text-red-500 font-bold px-1">✕</button>
+        `;
+        listContainer.appendChild(row);
+      });
+    }
+
+    // カード単体に入力欄を追加
+    function addNewRowToCard(rowId) {
+      const currentRows = localEditingNumbers[rowId] || [];
+      const nextIndex = currentRows.length + 1;
+      currentRows.push({ label: `番号${nextIndex}`, num: "", status: "自分使用" });
+      localEditingNumbers[rowId] = currentRows;
+      renderEditRows(rowId);
+    }
+
+    // カード単体から入力欄を削除
+    function removeRowFromCard(rowId, index) {
+      localEditingNumbers[rowId].splice(index, 1);
+      renderEditRows(rowId);
+    }
+
+    // 🪐 カード単体の複数番号データを1つの文字列に結合してGASへ送信
+    async function saveCardNumbers(rowId) {
+      const rows = localEditingNumbers[rowId] || [];
+      
+      // 文字列としてパッケージングする (label:num:status;;label:num:status)
+      const packagedString = rows
+        .filter(r => r.label.trim() !== "")
+        .map(r => `${r.label.replace(/:|;/g, '')}:${r.num.replace(/:|;/g, '')}:${r.status}`)
+        .join(';;');
+
+      await updateCell(rowId, '番号1', packagedString);
+      alert("保存しました");
+      fetchEvents();
+    }
+
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
         alert("コピーしました");
@@ -339,22 +419,6 @@
         document.execCommand("copy"); document.body.removeChild(textarea);
         alert("コピーしました");
       });
-    }
-
-    function toggleInlineEdit(idKey) {
-      document.getElementById(`inline-edit-${idKey}`).classList.toggle('hidden');
-      document.getElementById(`save-${idKey}`).classList.toggle('hidden');
-    }
-
-    async function saveMultipleNumbersWithStatus(rowId) {
-      const n1 = document.getElementById(`edit-${rowId}-num1`).value;
-      const s1 = document.getElementById(`edit-${rowId}-status1`).value;
-      await updateCell(rowId, '番号1', n1 ? `${n1}:${s1}` : "");
-      const n2 = document.getElementById(`edit-${rowId}-num2`).value;
-      const s2 = document.getElementById(`edit-${rowId}-status2`).value;
-      await updateCell(rowId, '番号2', n2 ? `${n2}:${s2}` : "");
-      alert("保存しました");
-      fetchEvents();
     }
 
     async function updateCell(rowId, columnName, value) {
