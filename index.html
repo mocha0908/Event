@@ -5,139 +5,105 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>イベント・チケット管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; -webkit-overflow-scrolling: touch; }
-    .fc { --fc-border-color: #e5e7eb; --fc-button-bg-color: #111827; --fc-button-border-color: #111827; --fc-button-hover-bg-color: #1f2937; --fc-button-hover-border-color: #1f2937; }
-    .fc .fc-toolbar-title { font-size: 1rem !important; font-weight: 700; color: #111827; }
-    .fc .fc-button { font-size: 0.75rem !important; padding: 0.4rem 0.6rem !important; border-radius: 0.5rem !important; }
-    .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
     
-    .fc-v-event, .fc-h-event { background-color: #111827 !important; border-color: #111827 !important; padding: 4px 6px !important; margin: 2px 1px !important; border-radius: 4px !important; display: block !important; }
-    .fc-event { cursor: pointer; transition: opacity 0.1s; }
-    .fc-event:active { opacity: 0.6; }
-    .fc-event-title { font-size: 10px !important; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    
-    .fc .fc-day-today { 
-      background-color: #f3f4f6 !important;
-      box-shadow: inset 0 0 0 2px #111827 !important;
-      position: relative;
+    /* 締切間近カードの緊迫感あるアニメーション効果 */
+    @keyframes pulse-border {
+      0% { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.08); }
+      50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 4px 25px rgba(239, 68, 68, 0.18); }
+      100% { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.08); }
     }
-    .fc .fc-day-today .fc-daygrid-day-number::after {
-      content: " TODAY";
-      font-size: 8px;
-      font-weight: bold;
-      color: #111827;
-      margin-left: 4px;
-      vertical-align: middle;
-    }
-
-    @keyframes card-flash {
-      0% { border-color: #111827; box-shadow: 0 0 0 6px rgba(17, 24, 39, 0.3); }
-      50% { border-color: #3b82f6; box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.5); }
-      100% { border-color: #e5e7eb; box-shadow: none; }
-    }
-    .flash-highlight {
-      animation: card-flash 1.5s ease-in-out 2 !important;
+    .urgent-card {
+      animation: pulse-border 2.5s infinite ease-in-out;
     }
   </style>
 </head>
-<body class="bg-[#fafafa] min-h-screen text-gray-900 antialiased">
+<body class="bg-[#f8fafc] min-h-screen text-slate-900 antialiased">
 
   <div class="max-w-6xl mx-auto px-4 py-8 sm:px-6">
     
-    <header class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-4">
+    <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
       <div>
-        <h1 class="text-xl font-bold text-gray-900 tracking-tight">イベント・チケット管理</h1>
-        <p class="text-xs text-gray-400 mt-1">スケジュールと締め切りを一元管理します</p>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <span>🎫</span> Ticket Hub
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">スケジュールと申し込み締め切りを一元管理</p>
       </div>
       
       <div class="flex items-center gap-2 w-full sm:w-auto">
-        <button onclick="toggleForm('add-form-container')" class="flex-1 sm:flex-none bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium text-xs transition duration-150">
-          イベント追加
+        <button onclick="toggleForm('add-form-container')" class="flex-1 sm:flex-none bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-semibold text-xs tracking-wide transition duration-150 shadow-sm">
+          ＋ イベント追加
         </button>
-        <button onclick="toggleForm('member-manager-container')" class="flex-1 sm:flex-none bg-white hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-lg font-medium text-xs border border-gray-200 transition duration-150">
-          メンバー管理
+        <button onclick="toggleForm('member-manager-container')" class="flex-1 sm:flex-none bg-white hover:bg-slate-50 text-slate-600 px-4 py-2.5 rounded-xl font-medium text-xs border border-slate-200 transition duration-150 shadow-sm">
+          👥 メンバー設定
         </button>
-        <button onclick="fetchEvents(true)" class="bg-white hover:bg-gray-50 text-gray-400 p-2 rounded-lg border border-gray-200 transition duration-150" title="手動更新">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path></svg>
+        <button onclick="fetchEvents(true)" class="bg-white hover:bg-slate-50 text-slate-400 p-2.5 rounded-xl border border-slate-200 transition duration-150 shadow-sm" title="手動更新">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path></svg>
         </button>
       </div>
     </header>
 
-    <div class="flex border-b border-gray-200 mb-6 space-x-6">
-      <button id="tab-list-btn" onclick="switchTab('list')" class="pb-3 text-sm font-semibold border-b-2 border-gray-900 text-gray-900 transition">
-        ⏳ 締め切り順リスト
-      </button>
-      <button id="tab-calendar-btn" onclick="switchTab('calendar')" class="pb-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-600 transition">
-        📅 カレンダー表示
-      </button>
-    </div>
-
-    <div id="member-manager-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-6 max-w-md mx-auto">
+    <div id="member-manager-container" class="hidden bg-white border border-slate-200 rounded-2xl shadow-xl p-5 mb-8 max-w-md mx-auto">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase">参戦メンバーの設定</h2>
-        <button onclick="toggleForm('member-manager-container')" class="text-gray-400 hover:text-gray-600 text-xs">✕</button>
+        <h2 class="text-xs font-bold text-slate-400 tracking-wider uppercase">参戦メンバーの設定</h2>
+        <button onclick="toggleForm('member-manager-container')" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
       </div>
       <div class="flex gap-2 mb-4">
-        <input type="text" id="new-member-name" placeholder="名前を入力" class="flex-1 bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
-        <button onclick="addMember()" class="bg-gray-900 text-white px-3 py-2 rounded-lg text-xs font-medium">追加</button>
+        <input type="text" id="new-member-name" placeholder="名前を入力" class="flex-1 bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:border-slate-400 focus:bg-white transition">
+        <button onclick="addMember()" class="bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-semibold">追加</button>
       </div>
-      <div id="manager-member-list" class="flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-lg min-h-[40px]"></div>
+      <div id="manager-member-list" class="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl min-h-[46px]"></div>
     </div>
 
-    <div id="add-form-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6 max-w-xl mx-auto">
-      <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase mb-4">新規イベント登録</h2>
+    <div id="add-form-container" class="hidden bg-white border border-slate-200 rounded-2xl shadow-xl p-6 mb-8 max-w-xl mx-auto">
+      <h2 class="text-xs font-bold text-slate-400 tracking-wider uppercase mb-5">新規イベント登録</h2>
       <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">開催日</label>
-          <input type="date" name="開催日" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">開催日</label>
+          <input type="date" name="開催日" required class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:border-slate-400 focus:bg-white transition">
         </div>
         <div>
-          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">イベント名</label>
-          <input type="text" name="イベント名" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400" placeholder="公演名">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">イベント名</label>
+          <input type="text" name="イベント名" required class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:border-slate-400 focus:bg-white transition" placeholder="ツアー名・公演名">
         </div>
         <div>
-          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">会場</label>
-          <input type="text" name="会場" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400" placeholder="会場名">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">会場</label>
+          <input type="text" name="会場" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:border-slate-400 focus:bg-white transition" placeholder="会場名">
         </div>
         <div>
-          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">URL</label>
-          <input type="url" name="URL" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400" placeholder="https://...">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">URL</label>
+          <input type="url" name="URL" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:border-slate-400 focus:bg-white transition" placeholder="https://...">
         </div>
         <div>
-          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">申し込み締め切り</label>
-          <input type="date" name="申し込み締め切り" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">申し込み締め切り</label>
+          <input type="date" name="申し込み締め切り" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:border-slate-400 focus:bg-white transition">
         </div>
         <div>
-          <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">枠数</label>
-          <input type="number" name="枠数" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-lg text-xs focus:outline-none focus:border-gray-400">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">枠数</label>
+          <input type="number" name="枠数" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:border-slate-400 focus:bg-white transition" placeholder="1">
         </div>
-        <div class="sm:col-span-2 flex justify-end space-x-2 pt-3 border-t border-gray-100 mt-2">
-          <button type="button" onclick="toggleForm('add-form-container')" class="text-gray-400 px-3 py-1.5 rounded-lg text-xs">キャンセル</button>
-          <button type="submit" class="bg-gray-900 text-white px-4 py-1.5 rounded-lg text-xs font-medium">登録</button>
+        <div class="sm:col-span-2 flex justify-end space-x-2 pt-4 border-t border-slate-100 mt-2">
+          <button type="button" onclick="toggleForm('add-form-container')" class="text-slate-400 hover:text-slate-600 px-4 py-2 rounded-xl text-xs font-medium">キャンセル</button>
+          <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-xs font-semibold shadow-sm">登録する</button>
         </div>
       </form>
     </div>
 
-    <div id="sync-indicator" class="fixed bottom-4 right-4 bg-gray-900/90 text-white text-[10px] px-3 py-1.5 rounded-full shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-1.5 z-50">
-      <div class="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
-      同期中...
+    <div id="sync-indicator" class="fixed bottom-6 right-6 bg-slate-900/95 text-white text-[11px] font-medium px-4 py-2 rounded-full shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-2 z-50">
+      <div class="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+      Cloudと同期中...
     </div>
 
-    <div id="loading" class="my-24 text-center hidden">
-      <div class="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin mb-2"></div>
-      <p class="text-xs text-gray-400">データを読み込み中</p>
+    <div id="loading" class="my-32 text-center hidden">
+      <div class="inline-block w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin mb-3"></div>
+      <p class="text-xs font-medium text-slate-400 tracking-wider">最新データをロード中</p>
     </div>
 
-    <div id="view-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
-
-    <div id="view-calendar" class="hidden bg-white border border-gray-200 rounded-xl p-3 sm:p-6 shadow-sm">
-      <div id="calendar"></div>
-    </div>
+    <div id="view-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
   </div>
 
@@ -147,8 +113,6 @@
     let members = JSON.parse(localStorage.getItem('ticket_hub_members')) || ["なゆ", "そると"];
     let globalEventsRaw = JSON.parse(localStorage.getItem('ticket_hub_events_cache')) || [];
     let localEditingNumbers = {};
-    let calendarInstance = null;
-    let currentTab = 'list';
 
     function getJstTodayString() {
       const now = new Date();
@@ -158,46 +122,38 @@
       return `${y}-${m}-${d}`;
     }
 
+    // スラッシュ区切りで安全に日本時間として日付を生成する
+    const parseToPureDate = (dateStr) => {
+      if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
+      try {
+        let rawStr = String(dateStr);
+        if (rawStr.includes('T')) rawStr = rawStr.split('T')[0];
+        let cleanStr = rawStr.replace(/-/g, '/');
+        if (cleanStr.includes('年')) cleanStr = cleanStr.replace('年', '/').replace('月', '/').replace('日', '');
+        const dParts = cleanStr.split('/');
+        if (dParts.length < 2) return null;
+        return new Date(dParts.length === 3 ? parseInt(dParts[0],10) : new Date().getFullYear(), (dParts.length === 3 ? parseInt(dParts[1],10) : parseInt(dParts[0],10)) - 1, dParts.length === 3 ? parseInt(dParts[2],10) : parseInt(dParts[1],10), 0,0,0,0);
+      } catch (e) { return null; }
+    };
+
     function toggleForm(id) {
       document.getElementById(id).classList.toggle('hidden');
       if (id === 'member-manager-container') renderManagerMemberList();
-    }
-
-    function switchTab(tabName) {
-      currentTab = tabName;
-      const listTabBtn = document.getElementById('tab-list-btn');
-      const calendarTabBtn = document.getElementById('tab-calendar-btn');
-      const listView = document.getElementById('view-list');
-      const calendarView = document.getElementById('view-calendar');
-
-      if (tabName === 'list') {
-        listTabBtn.className = "pb-3 text-sm font-semibold border-b-2 border-gray-900 text-gray-900 transition";
-        calendarTabBtn.className = "pb-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-600 transition";
-        listView.classList.remove('hidden');
-        calendarView.classList.add('hidden');
-        renderListView();
-      } else {
-        calendarTabBtn.className = "pb-3 text-sm font-semibold border-b-2 border-gray-900 text-gray-900 transition";
-        listTabBtn.className = "pb-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-gray-600 transition";
-        listView.classList.add('hidden');
-        calendarView.classList.remove('hidden');
-        initAndRenderCalendar();
-      }
     }
 
     function renderManagerMemberList() {
       const wrapper = document.getElementById('manager-member-list');
       wrapper.innerHTML = '';
       if(members.length === 0) {
-        wrapper.innerHTML = '<span class="text-[11px] text-gray-400 p-2">登録なし</span>';
+        wrapper.innerHTML = '<span class="text-xs text-slate-400 p-2">登録メンバーなし</span>';
         return;
       }
       members.forEach((m, idx) => {
         const badge = document.createElement('div');
-        badge.className = "flex items-center gap-1.5 bg-white text-gray-700 text-xs px-2.5 py-1 rounded-md border border-gray-200 shadow-sm";
+        badge.className = "flex items-center gap-1.5 bg-white text-slate-700 text-xs px-3 py-1 rounded-lg border border-slate-200 shadow-sm font-medium";
         badge.innerHTML = `
           <span>${m}</span>
-          <button onclick="deleteMember(${idx})" class="text-gray-300 hover:text-red-500 font-bold ml-1">✕</button>
+          <button onclick="deleteMember(${idx})" class="text-slate-300 hover:text-red-500 font-bold ml-1">✕</button>
         `;
         wrapper.appendChild(badge);
       });
@@ -206,8 +162,7 @@
     function addMember() {
       const input = document.getElementById('new-member-name');
       const name = input.value.trim();
-      if (!name) return;
-      if (members.includes(name)) return;
+      if (!name || members.includes(name)) return;
       members.push(name);
       localStorage.setItem('ticket_hub_members', JSON.stringify(members));
       input.value = '';
@@ -223,64 +178,18 @@
     }
 
     function parseNumbersString(cellValue) {
-      if (!cellValue || cellValue === "null" || cellValue === "undefined" || String(cellValue).trim() === "") {
-        return [];
-      }
+      if (!cellValue || cellValue === "null" || cellValue === "undefined" || String(cellValue).trim() === "") return [];
       const rawStr = String(cellValue).trim();
       if (!rawStr.includes(';;') && rawStr.includes(':') && rawStr.split(':').length === 2) {
         const p = rawStr.split(':');
         return [{ label: "番号1", num: p[0], status: p[1] }];
       }
-      
-      const items = rawStr.split(';;');
-      const result = [];
+      const items = rawStr.split(';;'); const result = [];
       items.forEach(item => {
         const parts = item.split(':');
-        if (parts.length >= 2) {
-          result.push({
-            label: parts[0] || "番号",
-            num: parts[1] || "",
-            status: parts[2] || "自分使用"
-          });
-        }
+        if (parts.length >= 2) result.push({ label: parts[0] || "番号", num: parts[1] || "", status: parts[2] || "自分使用" });
       });
       return result;
-    }
-
-    // 🎯 日付オブジェクトを作る時は、ハイフンをすべてスラッシュに置換して「日本時間」として正しくパースさせる（修正）
-    const parseToPureDate = (dateStr) => {
-      if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
-      try {
-        let rawStr = String(dateStr);
-        if (rawStr.includes('T')) {
-          rawStr = rawStr.split('T')[0];
-        }
-        // ハイフンや漢字をすべてスラッシュ区切り（yyyy/mm/dd）に統一
-        let cleanStr = rawStr.replace(/-/g, '/');
-        if (cleanStr.includes('年')) cleanStr = cleanStr.replace('年', '/').replace('月', '/').replace('日', '');
-        
-        const dParts = cleanStr.split('/');
-        if (dParts.length < 2) return null;
-        
-        // スラッシュ区切りの数値からDateオブジェクトを作ると、ローカル時間（JST）で正しく生成される
-        return new Date(dParts.length === 3 ? parseInt(dParts[0],10) : new Date().getFullYear(), (dParts.length === 3 ? parseInt(dParts[1],10) : parseInt(dParts[0],10)) - 1, dParts.length === 3 ? parseInt(dParts[2],10) : parseInt(dParts[1],10), 0,0,0,0);
-      } catch (e) { return null; }
-    };
-
-    // 🎯 カレンダーに渡す文字列も、時差ボケ（前日にずれる現象）を起こさない安全な形式に抽出
-    function extractIsoDateString(rawDateStr) {
-      if (!rawDateStr || rawDateStr === "null" || rawDateStr === "undefined") return null;
-      const str = String(rawDateStr).trim();
-      if (!str) return null;
-      
-      // 一度スラッシュの純粋な日付オブジェクトを経由させることで時差バグを完全に防ぐ
-      const pureDate = parseToPureDate(str);
-      if (!pureDate) return null;
-
-      const y = pureDate.getFullYear();
-      const m = String(pureDate.getMonth() + 1).padStart(2, '0');
-      const d = String(pureDate.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
     }
 
     async function fetchEvents(forceWithSpinner = false) {
@@ -288,7 +197,7 @@
       const indicatorEl = document.getElementById('sync-indicator');
       
       if (globalEventsRaw.length > 0 && !forceWithSpinner) {
-        renderCurrentView();
+        renderListView();
         indicatorEl.classList.remove('opacity-0');
       } else {
         loadingEl.classList.remove('hidden');
@@ -297,10 +206,9 @@
       try {
         const response = await fetch(GAS_API_URL);
         const latestData = await response.json();
-        
         globalEventsRaw = latestData;
         localStorage.setItem('ticket_hub_events_cache', JSON.stringify(latestData));
-        renderCurrentView();
+        renderListView();
       } catch (error) {
         console.error("同期失敗:", error);
       } finally {
@@ -309,20 +217,12 @@
       }
     }
 
-    function renderCurrentView() {
-      if (currentTab === 'list') {
-        renderListView();
-      } else {
-        initAndRenderCalendar();
-      }
-    }
-
     function renderListView() {
       const listEl = document.getElementById('view-list');
       listEl.innerHTML = '';
 
       if (globalEventsRaw.length === 0) {
-        listEl.innerHTML = '<div class="col-span-full text-center py-12 text-xs text-gray-400">イベントがありません。</div>';
+        listEl.innerHTML = '<div class="col-span-full text-center py-20 text-xs text-slate-400 font-medium">登録されているイベントがありません。</div>';
         return;
       }
 
@@ -336,19 +236,19 @@
       const formatToJapaneseDate = (dateStr) => {
         const d = parseToPureDate(dateStr);
         if (!d) return '日程未定';
-        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+        return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
       };
 
+      // 締め切り順にソート（今日・明日などの緊急予定を最上位へ）
       const sortedData = [...globalEventsRaw].sort((a, b) => {
         const aDate = parseToPureDate(a.申し込み締め切り);
         const bDate = parseToPureDate(b.申し込み締め切り);
+        const aUrgent = aDate && (aDate.getTime() === yesterday.getTime() || aDate.getTime() === today.getTime() || aDate.getTime() === tomorrow.getTime());
+        const bUrgent = bDate && (bDate.getTime() === yesterday.getTime() || bDate.getTime() === today.getTime() || bDate.getTime() === tomorrow.getTime());
         
-        const aIsUrgent = aDate && (aDate.getTime() === yesterday.getTime() || aDate.getTime() === today.getTime() || aDate.getTime() === tomorrow.getTime());
-        const bIsUrgent = bDate && (bDate.getTime() === yesterday.getTime() || bDate.getTime() === today.getTime() || bDate.getTime() === tomorrow.getTime());
-        
-        if (aIsUrgent && bIsUrgent) return aDate.getTime() - bDate.getTime();
-        if (aIsUrgent && !bIsUrgent) return -1;
-        if (!aIsUrgent && bIsUrgent) return 1;
+        if (aUrgent && bUrgent) return aDate.getTime() - bDate.getTime();
+        if (aUrgent && !bUrgent) return -1;
+        if (!aUrgent && bUrgent) return 1;
         
         const aHold = parseToPureDate(a.開催日); const bHold = parseToPureDate(b.開催日);
         return (aHold ? aHold.getTime() : 9999999999999) - (bHold ? bHold.getTime() : 9999999999999);
@@ -361,12 +261,13 @@
         const isTomorrow = deadlineDateObj && deadlineDateObj.getTime() === tomorrow.getTime();
         const isUrgent = isYesterday || isToday || isTomorrow;
 
-        let cardClass = "bg-white border border-gray-200";
-        let badgeClass = "bg-gray-100 text-gray-600";
+        // スタイリッシュなベースカード定義
+        let cardClass = "bg-white border border-slate-200 shadow-sm";
+        let badgeClass = "bg-slate-100 text-slate-600";
         
         if (isUrgent) {
-          cardClass = "bg-white border-2 border-red-500 shadow-sm";
-          badgeClass = "bg-red-50 text-red-600 font-medium";
+          cardClass = "bg-white border-2 border-red-500 urgent-card shadow-md";
+          badgeClass = "bg-red-500 text-white font-bold animate-pulse";
         }
 
         const displayHoldingDate = formatToJapaneseDate(event.開催日);
@@ -374,7 +275,7 @@
 
         let mmddDeadline = "（未設定）";
         if (deadlineDateObj) {
-          mmddDeadline = `${String(deadlineDateObj.getMonth() + 1).padStart(2, '0')}/${String(deadlineDateObj.getDate()).padStart(2, '0')}〆`;
+          mmddDeadline = `${String(deadlineDateObj.getMonth() + 1).padStart(2, '0')}/${String(deadlineDateObj.getDate()).padStart(2, '0')} 〆`;
         }
 
         const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
@@ -391,20 +292,19 @@
 
         let dynamicMembersHTML = '';
         members.forEach(m => {
-          const checkKey = `${m}参戦か`;
-          const numKey = `番号${m}`;
+          const checkKey = `${m}参戦か`; const numKey = `番号${m}`;
           const isChecked = event[checkKey] ? 'checked' : '';
           const numVal = event[numKey] || '';
 
           dynamicMembersHTML += `
-            <div class="flex items-center justify-between border-b border-gray-50 py-1.5 last:border-none">
-              <label class="flex items-center space-x-2 cursor-pointer flex-1">
-                <input type="checkbox" ${isChecked} onchange="updateCell(${event.id}, '${checkKey}', this.checked)" class="w-4 h-4 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
-                <span class="text-xs text-gray-600">${m}</span>
+            <div class="flex items-center justify-between py-2 border-b border-slate-100/60 last:border-none">
+              <label class="flex items-center space-x-2.5 cursor-pointer flex-1 select-none">
+                <input type="checkbox" ${isChecked} onchange="updateCell(${event.id}, '${checkKey}', this.checked)" class="w-4 h-4 rounded-md text-slate-900 border-slate-300 focus:ring-slate-900 transition">
+                <span class="text-xs font-medium text-slate-600">${m}</span>
               </label>
               <div class="flex items-center space-x-1">
-                <span class="text-[10px] text-gray-400">番:</span>
-                <input type="text" value="${numVal}" onchange="updateCell(${event.id}, '${numKey}', this.value)" class="border border-gray-200 bg-gray-50 w-14 p-1 text-center rounded text-xs text-gray-700 focus:border-gray-400 focus:outline-none">
+                <span class="text-[10px] font-bold text-slate-300 uppercase">No.</span>
+                <input type="text" value="${numVal}" onchange="updateCell(${event.id}, '${numKey}', this.value)" class="border border-slate-200 bg-slate-50/50 w-16 p-1 text-center rounded-lg text-xs font-medium text-slate-700 focus:border-slate-400 focus:bg-white focus:outline-none transition">
               </div>
             </div>
           `;
@@ -412,67 +312,80 @@
 
         let badgeText = '締切: ' + displayDeadlineDate;
         if (isYesterday) badgeText = '⚠️ 昨日締切！';
-        if (isToday) badgeText = '🚨 今日締切！';
+        if (isToday) badgeText = '🚨 本日締切！';
         if (isTomorrow) badgeText = '⏳ 明日締切';
 
         const card = document.createElement('div');
         card.id = `event-card-${event.id}`;
-        card.className = `${cardClass} p-5 rounded-xl flex flex-col justify-between space-y-4 relative transition duration-300`;
+        card.className = `${cardClass} p-6 rounded-2xl flex flex-col justify-between space-y-5 relative hover:shadow-md transition duration-200`;
         
         card.innerHTML = `
           <div>
-            <div class="flex justify-between items-start mb-3 pr-8">
-              <span class="text-[10px] text-gray-400 font-medium tracking-tight">${displayHoldingDate}</span>
+            <div class="flex justify-between items-center mb-3 pr-8">
+              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span>${displayHoldingDate}</span>
+              </div>
               ${event.申し込み締め切り ? `
-                <span class="text-[10px] px-2 py-0.5 rounded ${badgeClass}">
+                <span class="text-[10px] px-2.5 py-1 rounded-full font-bold tracking-wider ${badgeClass}">
                   ${badgeText}
                 </span>
               ` : ''}
             </div>
 
-            <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-4 right-4 text-gray-300 hover:text-gray-600 transition.p-2" title="コピー">
+            <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-5 right-5 text-slate-300 hover:text-slate-600 transition p-1" title="情報をコピー">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
             </button>
 
-            <h2 class="text-sm font-bold text-gray-900 mb-1 leading-snug">${event.イベント名 || '未設定'}</h2>
-            <p class="text-xs text-gray-400">📍 ${event.会場 || '未設定'} <span class="mx-1.5 text-gray-200">|</span> 枠: ${event.枠数 || '-'}</p>
+            <h2 class="text-base font-bold text-slate-900 mb-1.5 leading-snug tracking-tight">${event.イベント名 || '未設定'}</h2>
+            
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 font-medium">
+              <span class="inline-flex items-center gap-1">📍 ${event.会場 || '未設定'}</span>
+              <span class="text-slate-200">|</span>
+              <span>枠数: <strong class="text-slate-600 font-semibold">${event.枠数 || '-'}</strong></span>
+            </div>
             
             ${event.URL ? `
-              <div class="text-[11px] mt-3 pt-2.5 border-t border-gray-100">
-                <a href="${event.URL}" target="_blank" class="text-blue-600 hover:underline break-all block font-medium py-1">チケットリンク →</a>
+              <div class="mt-4">
+                <a href="${event.URL}" target="_blank" class="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-50 px-3 py-1.5 rounded-xl transition">
+                  チケットリンク 
+                  <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
               </div>
             ` : ''}
             
-            <div class="bg-gray-50 p-2.5 rounded-lg text-xs mt-4 space-y-1.5">
+            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs mt-4 space-y-2">
               <div class="flex justify-between items-start">
-                <span class="text-[10px] text-gray-400 mt-0.5">管理番号</span>
-                <span class="font-medium text-gray-800 text-right max-w-[180px] break-words">${displayNumbersText || '未入力'}</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">管理番号</span>
+                <span class="font-semibold text-slate-700 text-right max-w-[190px] break-words">${displayNumbersText || '未入力'}</span>
               </div>
               
-              <div id="inline-edit-${event.id}-nums" class="hidden space-y-2 pt-2 border-t border-gray-200">
+              <div id="inline-edit-${event.id}-nums" class="hidden space-y-2 pt-2.5 border-t border-slate-200/60">
                 <div id="edit-inputs-list-${event.id}"></div>
-                <button onclick="addNewRowToCard(${event.id})" class="text-[10px] text-blue-600 hover:underline block pt-1">＋ 入力欄を追加する</button>
+                <button onclick="addNewRowToCard(${event.id})" class="text-[10px] font-semibold text-blue-600 hover:underline block pt-1">＋ 項目を追加</button>
               </div>
               
-              <div class="flex justify-between items-center pt-0.5">
-                <button onclick="toggleCardEdit(${event.id})" class="text-gray-400 hover:text-gray-600 text-[10px] py-1">編集</button>
-                <button onclick="saveCardNumbers(${event.id})" id="save-${event.id}-nums" class="hidden bg-gray-900 text-white px-2 py-0.5 rounded text-[10px]">保存</button>
+              <div class="flex justify-between items-center pt-1">
+                <button onclick="toggleCardEdit(${event.id})" class="text-slate-400 hover:text-slate-600 font-medium text-[10px] transition">管理番号を編集</button>
+                <button onclick="saveCardNumbers(${event.id})" id="save-${event.id}-nums" class="hidden bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[10px] font-semibold shadow-sm transition">保存</button>
               </div>
             </div>
           </div>
 
-          <div class="border-t border-gray-100 pt-3 space-y-1.5">
-            <label class="flex items-center space-x-2 cursor-pointer py-1">
-              <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
-              <span class="text-xs text-gray-600">リマインド通知</span>
-            </label>
+          <div class="border-t border-slate-100 pt-4 space-y-1">
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <label class="flex items-center space-x-2 cursor-pointer bg-slate-50/60 p-2 rounded-xl border border-slate-100 select-none">
+                <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 rounded-md text-slate-900 border-slate-300 focus:ring-slate-900 transition">
+                <span class="text-xs font-medium text-slate-600">通知ON</span>
+              </label>
 
-            <label class="flex items-center space-x-2 cursor-pointer py-1">
-              <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
-              <span class="text-xs text-gray-600">本申し込み完了</span>
-            </label>
+              <label class="flex items-center space-x-2 cursor-pointer bg-slate-50/60 p-2 rounded-xl border border-slate-100 select-none">
+                <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 rounded-md text-slate-900 border-slate-300 focus:ring-slate-900 transition">
+                <span class="text-xs font-medium text-slate-600">申込完了</span>
+              </label>
+            </div>
 
-            <div class="pt-2 mt-1 border-t border-gray-100">
+            <div class="bg-slate-50/30 border border-slate-100 rounded-xl px-3 py-1">
               ${dynamicMembersHTML}
             </div>
           </div>
@@ -481,89 +394,13 @@
       });
     }
 
-    function initAndRenderCalendar() {
-      const calendarEl = document.getElementById('calendar');
-      const calendarEvents = [];
-      
-      globalEventsRaw.forEach(event => {
-        const holdDateStr = extractIsoDateString(event.開催日);
-        const deadlineDateStr = extractIsoDateString(event.申し込み締め切り);
-
-        if (holdDateStr) {
-          calendarEvents.push({
-            title: `🎤 ${event.イベント名 || '未設定'}`,
-            start: holdDateStr,
-            allDay: true,
-            extendedProps: { eventId: event.id }
-          });
-        }
-        if (deadlineDateStr) {
-          calendarEvents.push({
-            title: `⚠️ 〆: ${event.イベント名 || '未設定'}`,
-            start: deadlineDateStr,
-            allDay: true,
-            backgroundColor: '#ef4444',
-            borderColor: '#ef4444',
-            extendedProps: { eventId: event.id }
-          });
-        }
-      });
-
-      const jstTodayStr = getJstTodayString();
-
-      if (!calendarInstance) {
-        calendarInstance = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth',
-          locale: 'ja',
-          firstDay: 1, 
-          headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-          events: calendarEvents,
-          contentHeight: 'auto',
-          now: jstTodayStr,
-          
-          eventClick: function(info) {
-            info.jsEvent.preventDefault();
-            const targetId = info.event.extendedProps.eventId;
-            if (targetId) {
-              executeJump(targetId);
-            }
-          }
-        });
-        calendarInstance.render();
-      } else {
-        calendarInstance.removeAllEvents();
-        calendarInstance.addEventSource(calendarEvents);
-        calendarInstance.render();
-      }
-    }
-
-    function executeJump(targetId) {
-      switchTab('list');
-      setTimeout(() => {
-        const cardEl = document.getElementById(`event-card-${targetId}`);
-        if (cardEl) {
-          const offsetTop = cardEl.getBoundingClientRect().top + window.pageYOffset - (window.innerHeight / 3);
-          window.scrollTo({
-            top: offsetTop,
-            behavior: 'smooth'
-          });
-          cardEl.classList.add('flash-highlight');
-          setTimeout(() => { cardEl.classList.remove('flash-highlight'); }, 3500);
-        }
-      }, 180);
-    }
-
     function toggleCardEdit(rowId) {
       const container = document.getElementById(`inline-edit-${rowId}-nums`);
       const saveBtn = document.getElementById(`save-${rowId}-nums`);
       const isHidden = container.classList.contains('hidden');
-      
       container.classList.toggle('hidden');
       saveBtn.classList.toggle('hidden');
-
-      if (isHidden) {
-        renderEditRows(rowId);
-      }
+      if (isHidden) renderEditRows(rowId);
     }
 
     function renderEditRows(rowId) {
@@ -572,17 +409,16 @@
       
       localEditingNumbers[rowId].forEach((item, idx) => {
         const row = document.createElement('div');
-        row.className = "flex gap-1 items-center mb-1.5";
-        
+        row.className = "flex gap-1.5 items-center mb-2";
         row.innerHTML = `
-          <input type="text" value="${item.label}" oninput="localEditingNumbers[${rowId}][${idx}].label=this.value" placeholder="項目名" class="bg-white border border-gray-200 p-1 rounded w-16 text-[10px] text-gray-500 font-bold">
-          <input type="text" value="${item.num}" oninput="localEditingNumbers[${rowId}][${idx}].num=this.value" placeholder="番号" class="bg-white border border-gray-200 p-1 rounded flex-1 text-xs">
-          <select onchange="localEditingNumbers[${rowId}][${idx}].status=this.value" class="bg-white border border-gray-200 p-1 rounded text-xs text-gray-600">
+          <input type="text" value="${item.label}" oninput="localEditingNumbers[${rowId}][${idx}].label=this.value" placeholder="項目名" class="bg-white border border-slate-200 p-1.5 rounded-lg w-16 text-[10px] text-slate-500 font-bold focus:outline-none focus:border-slate-400">
+          <input type="text" value="${item.num}" oninput="localEditingNumbers[${rowId}][${idx}].num=this.value" placeholder="番号" class="bg-white border border-slate-200 p-1.5 rounded-lg flex-1 text-xs focus:outline-none focus:border-slate-400">
+          <select onchange="localEditingNumbers[${rowId}][${idx}].status=this.value" class="bg-white border border-slate-200 p-1.5 rounded-lg text-xs text-slate-600 font-medium focus:outline-none">
             <option value="自分使用" ${item.status === "自分使用" ? "selected" : ""}>自分使用</option>
             <option value="譲渡前" ${item.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
             <option value="譲渡済み" ${item.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
           </select>
-          <button onclick="removeRowFromCard(${rowId}, ${idx})" class="text-gray-300 hover:text-red-500 font-bold px-1">✕</button>
+          <button onclick="removeRowFromCard(${rowId}, ${idx})" class="text-slate-300 hover:text-red-500 font-bold px-1 transition">✕</button>
         `;
         listContainer.appendChild(row);
       });
@@ -603,7 +439,6 @@
 
     async function saveCardNumbers(rowId) {
       const rows = localEditingNumbers[rowId] || [];
-      
       const packagedString = rows
         .filter(r => r.label.trim() !== "")
         .map(r => `${r.label.replace(/:|;/g, '')}:${r.num.replace(/:|;/g, '')}:${r.status}`)
@@ -614,18 +449,18 @@
       localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
 
       await updateCell(rowId, '番号1', packagedString);
-      alert("保存しました");
+      alert("管理番号を保存しました");
       fetchEvents();
     }
 
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
-        alert("コピーしました");
+        alert("クリップボードにコピーしました！");
       }).catch(err => {
         const textarea = document.createElement("textarea");
         textarea.value = text; document.body.appendChild(textarea); textarea.select();
         document.execCommand("copy"); document.body.removeChild(textarea);
-        alert("コピーしました");
+        alert("クリップボードにコピーしました！");
       });
     }
 
@@ -654,10 +489,10 @@
       };
       try {
         await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        alert("追加しました");
+        alert("イベントを新しく登録しました！");
         form.reset(); toggleForm('add-form-container'); 
         fetchEvents(true);
-      } catch (error) { alert("失敗しました"); }
+      } catch (error) { alert("登録に失敗しました"); }
     }
 
     window.onload = () => {
