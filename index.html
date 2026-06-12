@@ -11,7 +11,6 @@
   <style>
     body { font-family: 'Inter', 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; -webkit-overflow-scrolling: touch; }
     
-    /* 締切間近カードの緊迫感あるアニメーション効果 */
     @keyframes pulse-border {
       0% { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.08); }
       50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 4px 25px rgba(239, 68, 68, 0.18); }
@@ -122,7 +121,6 @@
       return `${y}-${m}-${d}`;
     }
 
-    // スラッシュ区切りで安全に日本時間として日付を生成する
     const parseToPureDate = (dateStr) => {
       if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
       try {
@@ -239,7 +237,6 @@
         return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
       };
 
-      // 締め切り順にソート（今日・明日などの緊急予定を最上位へ）
       const sortedData = [...globalEventsRaw].sort((a, b) => {
         const aDate = parseToPureDate(a.申し込み締め切り);
         const bDate = parseToPureDate(b.申し込み締め切り);
@@ -261,13 +258,12 @@
         const isTomorrow = deadlineDateObj && deadlineDateObj.getTime() === tomorrow.getTime();
         const isUrgent = isYesterday || isToday || isTomorrow;
 
-        // スタイリッシュなベースカード定義
         let cardClass = "bg-white border border-slate-200 shadow-sm";
         let badgeClass = "bg-slate-100 text-slate-600";
         
         if (isUrgent) {
           cardClass = "bg-white border-2 border-red-500 urgent-card shadow-md";
-          badgeClass = "bg-red-500 text-white font-bold animate-pulse";
+          badgeClass = "bg-red-505 text-white bg-red-500 font-bold animate-pulse";
         }
 
         const displayHoldingDate = formatToJapaneseDate(event.開催日);
@@ -412,7 +408,7 @@
         row.className = "flex gap-1.5 items-center mb-2";
         row.innerHTML = `
           <input type="text" value="${item.label}" oninput="localEditingNumbers[${rowId}][${idx}].label=this.value" placeholder="項目名" class="bg-white border border-slate-200 p-1.5 rounded-lg w-16 text-[10px] text-slate-500 font-bold focus:outline-none focus:border-slate-400">
-          <input type="text" value="${item.num}" oninput="localEditingNumbers[${rowId}][${idx}].num=this.value" placeholder="番号" class="bg-white border border-slate-200 p-1.5 rounded-lg flex-1 text-xs focus:outline-none focus:border-slate-400">
+          <input type="text" value="${item.num}" oninput="localEditingNumbers[${rowId}][${idx}].num=this.value" placeholder="番号(カンマ区切りで自動分解)" class="bg-white border border-slate-200 p-1.5 rounded-lg flex-1 text-xs focus:outline-none focus:border-slate-400">
           <select onchange="localEditingNumbers[${rowId}][${idx}].status=this.value" class="bg-white border border-slate-200 p-1.5 rounded-lg text-xs text-slate-600 font-medium focus:outline-none">
             <option value="自分使用" ${item.status === "自分使用" ? "selected" : ""}>自分使用</option>
             <option value="譲渡前" ${item.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
@@ -437,20 +433,57 @@
       renderEditRows(rowId);
     }
 
+    // 🎯 入力された「1,2,3,4,5」を検知して自動分解する処理
     async function saveCardNumbers(rowId) {
       const rows = localEditingNumbers[rowId] || [];
-      const packagedString = rows
-        .filter(r => r.label.trim() !== "")
+      let finalRows = [];
+
+      rows.forEach((r, idx) => {
+        const rawNum = r.num.trim();
+        // カンマ、全角カンマ、スペース、読点で区切られているかチェック
+        const delimiters = /[\s,、，]+/;
+        
+        if (delimiters.test(rawNum)) {
+          // 区切り文字を見つけたらバラバラに分解する
+          const splitNums = rawNum.split(delimiters).filter(n => n.trim() !== "");
+          
+          splitNums.forEach((singleNum, sIdx) => {
+            finalRows.push({
+              // 項目名が「番号1」などの初期値なら、自動で「番号1」「番号2」と連番を振り直す
+              label: r.label.startsWith("番号") ? `番号${finalRows.length + 1}` : `${r.label}-${sIdx + 1}`,
+              num: singleNum,
+              status: r.status
+            });
+          });
+        } else {
+          // 区切りがない通常の入力はそのまま保持
+          if (r.label.trim() !== "") {
+            finalRows.push(r);
+          }
+        }
+      });
+
+      // 万が一すべて空欄になった場合は初期入力欄を1つ用意
+      if (finalRows.length === 0) {
+        finalRows = [{ label: "番号1", num: "", status: "自分使用" }];
+      }
+
+      // スプレッドシート送信用に「項目名:番号:ステータス;;項目名:番号...」の形式にパッケージ化
+      const packagedString = finalRows
+        .filter(r => r.num.trim() !== "")
         .map(r => `${r.label.replace(/:|;/g, '')}:${r.num.replace(/:|;/g, '')}:${r.status}`)
         .join(';;');
 
+      // ローカルのキャッシュを更新
+      localEditingNumbers[rowId] = finalRows;
       const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
       if(idx !== -1) globalEventsRaw[idx]['番号1'] = packagedString;
       localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
 
+      // クラウド（GAS）に送信
       await updateCell(rowId, '番号1', packagedString);
-      alert("管理番号を保存しました");
-      fetchEvents();
+      alert("管理番号を分解・保存しました！");
+      fetchEvents(true);
     }
 
     function copyToClipboard(text) {
