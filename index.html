@@ -11,13 +11,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; }
-    /* カレンダーの微調整（ミニマル化） */
     .fc { --fc-border-color: #e5e7eb; --fc-button-bg-color: #111827; --fc-button-border-color: #111827; --fc-button-hover-bg-color: #1f2937; --fc-button-hover-border-color: #1f2937; }
     .fc .fc-toolbar-title { font-size: 1rem !important; font-weight: 700; color: #111827; }
     .fc .fc-button { font-size: 0.75rem !important; padding: 0.4rem 0.6rem !important; border-radius: 0.5rem !important; }
     .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
     .fc-v-event { background-color: #111827 !important; border-color: #111827 !important; padding: 2px 4px; }
+    .fc-event { cursor: pointer; transition: opacity 0.15s; }
+    .fc-event:hover { opacity: 0.85; }
     .fc-event-title { font-size: 10px !important; font-weight: 500; }
+    
+    .fc .fc-day-today { background-color: rgba(243, 244, 246, 0.7) !important; }
+
+    @keyframes card-flash {
+      0% { border-color: #111827; box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.15); }
+      50% { border-color: #3b82f6; box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.3); }
+      100% { border-color: inherit; box-shadow: inherit; }
+    }
+    .flash-highlight {
+      animation: card-flash 2s ease-in-out 2;
+    }
   </style>
 </head>
 <body class="bg-[#fafafa] min-h-screen text-gray-900 antialiased">
@@ -37,7 +49,7 @@
         <button onclick="toggleForm('member-manager-container')" class="flex-1 sm:flex-none bg-white hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-lg font-medium text-xs border border-gray-200 transition duration-150">
           参戦者の一括管理
         </button>
-        <button onclick="fetchEvents()" class="bg-white hover:bg-gray-50 text-gray-400 p-2 rounded-lg border border-gray-200 transition duration-150" title="更新">
+        <button onclick="fetchEvents(true)" class="bg-white hover:bg-gray-50 text-gray-400 p-2 rounded-lg border border-gray-200 transition duration-150" title="手動更新">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path></svg>
         </button>
       </div>
@@ -98,7 +110,12 @@
       </form>
     </div>
 
-    <div id="loading" class="my-24 text-center">
+    <div id="sync-indicator" class="fixed bottom-4 right-4 bg-gray-900/90 text-white text-[10px] px-3 py-1.5 rounded-full shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-1.5 z-50">
+      <div class="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+      最新データと同期中...
+    </div>
+
+    <div id="loading" class="my-24 text-center hidden">
       <div class="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin mb-2"></div>
       <p class="text-xs text-gray-400">データを読み込み中</p>
     </div>
@@ -116,13 +133,10 @@
 
     let members = JSON.parse(localStorage.getItem('ticket_hub_members')) || ["なゆ", "そると"];
     
-    // 全体イベント保持用
-    let globalEventsRaw = [];
-    // カードごとの編集用データ保持
+    // ✨ キャッシュ（ローカルストレージ）から前回のデータを最速で取り出す
+    let globalEventsRaw = JSON.parse(localStorage.getItem('ticket_hub_events_cache')) || [];
     let localEditingNumbers = {};
-    // カレンダーのインスタンス保持用
     let calendarInstance = null;
-    // 現在のタブ
     let currentTab = 'list';
 
     function toggleForm(id) {
@@ -179,17 +193,16 @@
       localStorage.setItem('ticket_hub_members', JSON.stringify(members));
       input.value = '';
       renderManagerMemberList();
-      fetchEvents();
+      fetchEvents(true);
     }
 
     function deleteMember(index) {
       members.splice(index, 1);
       localStorage.setItem('ticket_hub_members', JSON.stringify(members));
       renderManagerMemberList();
-      fetchEvents();
+      fetchEvents(true);
     }
 
-    // 複合データパース (例: "番号1:12番:自分使用;;発券コード:abc:譲渡前")
     function parseNumbersString(cellValue) {
       if (!cellValue || cellValue === "null" || cellValue === "undefined" || String(cellValue).trim() === "") {
         return [];
@@ -215,7 +228,6 @@
       return result;
     }
 
-    // 共通の日付パース
     const parseToPureDate = (dateStr) => {
       if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
       try {
@@ -235,25 +247,45 @@
       } catch (e) { return null; }
     };
 
-    // APIからデータ取得
-    async function fetchEvents() {
+    // ✨ 【超爆速化】キャッシュがあれば一瞬で描画し、裏（非同期）でGASから最新版を落とす仕組みに変更
+    async function fetchEvents(forceWithSpinner = false) {
       const loadingEl = document.getElementById('loading');
-      loadingEl.style.display = 'block';
+      const indicatorEl = document.getElementById('sync-indicator');
+      
+      // 1. もしキャッシュがすでにあれば、まず先に画面を組み立てる（体感0秒）
+      if (globalEventsRaw.length > 0 && !forceWithSpinner) {
+        renderCurrentView();
+        // 裏で同期していることを知らせるインジケーターをふわっと表示
+        indicatorEl.classList.remove('opacity-0');
+      } else {
+        // キャッシュがない最初の一回、または手動更新ボタンを押した時だけスピナーを出す
+        loadingEl.classList.remove('hidden');
+      }
       
       try {
+        // 裏でGASから最新データを取得
         const response = await fetch(GAS_API_URL);
-        globalEventsRaw = await response.json();
-        loadingEl.style.display = 'none';
-
-        // 読み込み完了後、現在のタブに沿って描画
-        if (currentTab === 'list') {
-          renderListView();
-        } else {
-          initAndRenderCalendar();
-        }
+        const latestData = await response.json();
+        
+        // ローカルのキャッシュを最新データで上書き
+        globalEventsRaw = latestData;
+        localStorage.setItem('ticket_hub_events_cache', JSON.stringify(latestData));
+        
+        // 最新データで画面を再描画（変更があればここでパッと切り替わる）
+        renderCurrentView();
       } catch (error) {
-        loadingEl.textContent = "同期エラーが発生しました。";
-        console.error(error);
+        console.error("同期に失敗しました。オフラインモードで続行します:", error);
+      } finally {
+        loadingEl.classList.add('hidden');
+        indicatorEl.classList.add('opacity-0');
+      }
+    }
+
+    function renderCurrentView() {
+      if (currentTab === 'list') {
+        renderListView();
+      } else {
+        initAndRenderCalendar();
       }
     }
 
@@ -261,6 +293,11 @@
     function renderListView() {
       const listEl = document.getElementById('view-list');
       listEl.innerHTML = '';
+
+      if (globalEventsRaw.length === 0) {
+        listEl.innerHTML = '<div class="col-span-full text-center py-12 text-xs text-gray-400">登録されたイベントがありません。「イベント追加」から登録してください。</div>';
+        return;
+      }
 
       const today = new Date(); today.setHours(0,0,0,0);
       const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1); tomorrow.setHours(0,0,0,0);
@@ -271,7 +308,6 @@
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
-      // ソート処理
       const sortedData = [...globalEventsRaw].sort((a, b) => {
         const aDate = parseToPureDate(a.申し込み締め切り);
         const bDate = parseToPureDate(b.申し込み締め切り);
@@ -307,7 +343,6 @@
 
         const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
-        // 内部編集メモリの初期化（未作成時のみスプレッドシートの値を反映）
         if (!localEditingNumbers[event.id]) {
           const parsed = parseNumbersString(event.番号1);
           localEditingNumbers[event.id] = parsed.length > 0 ? parsed : [{ label: "番号1", num: "", status: "自分使用" }];
@@ -318,7 +353,6 @@
           .map(p => `${p.label}:${p.num}(${p.status.replace('使用','').replace('み','')})`)
           .join(", ");
 
-        // 👥 参戦者チェックボックス生成
         let dynamicMembersHTML = '';
         members.forEach(m => {
           const checkKey = `${m}参戦か`;
@@ -341,7 +375,8 @@
         });
 
         const card = document.createElement('div');
-        card.className = `${cardClass} p-5 rounded-xl flex flex-col justify-between space-y-4 relative`;
+        card.id = `event-card-${event.id}`;
+        card.className = `${cardClass} p-5 rounded-xl flex flex-col justify-between space-y-4 relative transition duration-300`;
         
         card.innerHTML = `
           <div>
@@ -409,22 +444,20 @@
     function initAndRenderCalendar() {
       const calendarEl = document.getElementById('calendar');
       
-      // カレンダー用イベントデータの組み立て
       const calendarEvents = [];
       globalEventsRaw.forEach(event => {
         const holdDate = parseToPureDate(event.開催日);
         const deadlineDate = parseToPureDate(event.申し込み締め切り);
 
-        // 1. 公演日当日の予定
         if (holdDate) {
           const yyyymmdd = holdDate.toISOString().split('T')[0];
           calendarEvents.push({
             title: `🎤 ${event.イベント名 || '未設定'}`,
             start: yyyymmdd,
-            allDay: true
+            allDay: true,
+            extendedProps: { eventId: event.id }
           });
         }
-        // 2. 申し込み締め切り日
         if (deadlineDate) {
           const yyyymmdd = deadlineDate.toISOString().split('T')[0];
           calendarEvents.push({
@@ -432,7 +465,8 @@
             start: yyyymmdd,
             allDay: true,
             backgroundColor: '#ef4444',
-            borderColor: '#ef4444'
+            borderColor: '#ef4444',
+            extendedProps: { eventId: event.id }
           });
         }
       });
@@ -441,10 +475,26 @@
         calendarInstance = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
           locale: 'ja',
-          firstDay: 1, // 月曜始まり
+          firstDay: 1, 
           headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
           events: calendarEvents,
-          contentHeight: 'auto'
+          contentHeight: 'auto',
+          timeZone: 'local',
+          
+          eventClick: function(info) {
+            const targetId = info.event.extendedProps.eventId;
+            if (targetId) {
+              switchTab('list');
+              setTimeout(() => {
+                const cardEl = document.getElementById(`event-card-${targetId}`);
+                if (cardEl) {
+                  cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  cardEl.classList.add('flash-highlight');
+                  setTimeout(() => { cardEl.classList.remove('flash-highlight'); }, 4000);
+                }
+              }, 100);
+            }
+          }
         });
         calendarInstance.render();
       } else {
@@ -454,7 +504,6 @@
       }
     }
 
-    // 編集トグル
     function toggleCardEdit(rowId) {
       const container = document.getElementById(`inline-edit-${rowId}-nums`);
       const saveBtn = document.getElementById(`save-${rowId}-nums`);
@@ -468,7 +517,6 @@
       }
     }
 
-    // 🔴 【修正完了】入力値がリアルタイムにメモリ（配列）にバインドされるように変更
     function renderEditRows(rowId) {
       const listContainer = document.getElementById(`edit-inputs-list-${rowId}`);
       listContainer.innerHTML = '';
@@ -477,7 +525,6 @@
         const row = document.createElement('div');
         row.className = "flex gap-1 items-center mb-1.5";
         
-        // oninputで文字が入力されるたびに即座にオブジェクトのプロパティを更新するように修正
         row.innerHTML = `
           <input type="text" value="${item.label}" oninput="localEditingNumbers[${rowId}][${idx}].label=this.value" placeholder="項目名" class="bg-white border border-gray-200 p-1 rounded w-16 text-[10px] text-gray-500 font-bold">
           <input type="text" value="${item.num}" oninput="localEditingNumbers[${rowId}][${idx}].num=this.value" placeholder="番号" class="bg-white border border-gray-200 p-1 rounded flex-1 text-xs">
@@ -505,7 +552,6 @@
       renderEditRows(rowId);
     }
 
-    // 🪐 【修正完了】メモリに格納された新しい入力データを結合して送信
     async function saveCardNumbers(rowId) {
       const rows = localEditingNumbers[rowId] || [];
       
@@ -514,7 +560,11 @@
         .map(r => `${r.label.replace(/:|;/g, '')}:${r.num.replace(/:|;/g, '')}:${r.status}`)
         .join(';;');
 
-      // スプレッドシートの「番号1」の列にすべてのデータを同期
+      // キャッシュ（表示データ）もその場で書き換え
+      const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
+      if(idx !== -1) globalEventsRaw[idx]['番号1'] = packagedString;
+      localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
+
       await updateCell(rowId, '番号1', packagedString);
       alert("保存しました");
       fetchEvents();
@@ -532,12 +582,14 @@
     }
 
     async function updateCell(rowId, columnName, value) {
+      // ユーザーの操作体験を爆速にするため、サーバーへの送信完了を待たずにまずキャッシュを更新
+      const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
+      if(idx !== -1) globalEventsRaw[idx][columnName] = value;
+      localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
+
       const payload = { id: rowId, column: columnName, value: value };
       try {
         await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        // ローカルのデータも更新を反映しておく
-        const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
-        if(idx !== -1) globalEventsRaw[idx][columnName] = value;
       } catch (error) { console.error(error); }
     }
 
@@ -556,11 +608,15 @@
       try {
         await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         alert("追加しました");
-        form.reset(); toggleForm('add-form-container'); fetchEvents();
+        form.reset(); toggleForm('add-form-container'); 
+        fetchEvents(true); // 追加時のみスピナーを出して強制再読込
       } catch (error) { alert("失敗しました"); }
     }
 
-    window.onload = fetchEvents;
+    // 初回起動
+    window.onload = () => {
+      fetchEvents(false);
+    };
   </script>
 </body>
 </html>
