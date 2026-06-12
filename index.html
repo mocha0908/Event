@@ -150,7 +150,6 @@
     let calendarInstance = null;
     let currentTab = 'list';
 
-    // 🎯 タイムゾーンバグを完全に破壊する関数（日本時間の「yyyy-mm-dd」を常に正確に取得）
     function getJstTodayString() {
       const formatter = new Intl.DateTimeFormat('ja-JP', {
         timeZone: 'Asia/Tokyo',
@@ -158,7 +157,6 @@
         month: '2-digit',
         day: '2-digit'
       });
-      // 出力例: "2026/03/30" -> "2026-03-30" に変換
       return formatter.format(new Date()).replace(/\//g, '-');
     }
 
@@ -251,24 +249,34 @@
       return result;
     }
 
+    // 🎯 タイムゾーンの狂いを完全に直す安全な日付パース処理
     const parseToPureDate = (dateStr) => {
       if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
       try {
-        const rawStr = String(dateStr);
+        let rawStr = String(dateStr);
         if (rawStr.includes('T')) {
-          const parts = rawStr.split('T');
-          const dParts = parts[0].split('-');
-          const d = new Date(parseInt(dParts[0],10), parseInt(dParts[1],10) - 1, parseInt(dParts[2],10), 0,0,0,0);
-          if (parts[1] && parts[1].startsWith('15:')) d.setDate(d.getDate() + 1);
-          return d;
+          rawStr = rawStr.split('T')[0];
         }
-        let cleanStr = rawStr.replace(/\//g, '-');
-        if (cleanStr.includes('年')) cleanStr = cleanStr.replace('年', '-').replace('月', '-').replace('日', '');
-        const dParts = cleanStr.split('-');
+        // ハイフンをスラッシュに置換（JSのタイムゾーン誤認バグを殺すため）
+        let cleanStr = rawStr.replace(/-/g, '/');
+        if (cleanStr.includes('年')) cleanStr = cleanStr.replace('年', '/').replace('月', '/').replace('日', '');
+        
+        const dParts = cleanStr.split('/');
         if (dParts.length < 2) return null;
+        
+        // yyyy/mm/dd の形でパースすれば、ブラウザは常にローカルタイム（JST）の00:00として認識する
         return new Date(dParts.length === 3 ? parseInt(dParts[0],10) : new Date().getFullYear(), (dParts.length === 3 ? parseInt(dParts[1],10) : parseInt(dParts[0],10)) - 1, dParts.length === 3 ? parseInt(dParts[2],10) : parseInt(dParts[1],10), 0,0,0,0);
       } catch (e) { return null; }
     };
+
+    // FullCalendar用に、ローカル時間を維持したまま yyyy-mm-dd にフォーマットする補助関数
+    function formatToIsoString(dateObj) {
+      if (!dateObj) return "";
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
 
     async function fetchEvents(forceWithSpinner = false) {
       const loadingEl = document.getElementById('loading');
@@ -313,7 +321,6 @@
         return;
       }
 
-      // ⏱️ 安全な今日文字列から昨日・今日・明日を計算
       const jstTodayStr = getJstTodayString();
       const p = jstTodayStr.split('-');
       const today = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10), 0,0,0,0);
@@ -477,20 +484,19 @@
         const holdDate = parseToPureDate(event.開催日);
         const deadlineDate = parseToPureDate(event.申し込み締め切り);
 
+        // 🎯 カレンダーへのマッピング時に正しいローカル文字列にフォーマット
         if (holdDate) {
-          const yyyymmdd = holdDate.toISOString().split('T')[0];
           calendarEvents.push({
             title: `🎤 ${event.イベント名 || '未設定'}`,
-            start: yyyymmdd,
+            start: formatToIsoString(holdDate),
             allDay: true,
             extendedProps: { eventId: event.id }
           });
         }
         if (deadlineDate) {
-          const yyyymmdd = deadlineDate.toISOString().split('T')[0];
           calendarEvents.push({
             title: `⚠️ 〆: ${event.イベント名 || '未設定'}`,
-            start: yyyymmdd,
+            start: formatToIsoString(deadlineDate),
             allDay: true,
             backgroundColor: '#ef4444',
             borderColor: '#ef4444',
@@ -499,7 +505,6 @@
         }
       });
 
-      // 🎯 ここを最も安全なJST文字列取得に変更
       const jstTodayStr = getJstTodayString();
 
       if (!calendarInstance) {
@@ -510,7 +515,7 @@
           headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
           events: calendarEvents,
           contentHeight: 'auto',
-          now: jstTodayStr, // 👈 確実に日本時間の yyyy-mm-dd をカレンダーの今日として設定
+          now: jstTodayStr,
           
           eventClick: function(info) {
             info.jsEvent.preventDefault();
