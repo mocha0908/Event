@@ -150,7 +150,6 @@
     let calendarInstance = null;
     let currentTab = 'list';
 
-    // 🎯 今日の日付文字列を「yyyy-mm-dd」の形に安全かつ確実に生成する（バグ修正）
     function getJstTodayString() {
       const now = new Date();
       const y = now.getFullYear();
@@ -248,7 +247,6 @@
       return result;
     }
 
-    // 安全な日付パース
     const parseToPureDate = (dateStr) => {
       if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
       try {
@@ -266,7 +264,7 @@
       } catch (e) { return null; }
     };
 
-    // カレンダー用の文字列抽出
+    // 🎯 カレンダー用に「yyyy-mm-dd」形式の「純粋な文字列」だけを切り出す
     function extractIsoDateString(rawDateStr) {
       if (!rawDateStr || rawDateStr === "null" || rawDateStr === "undefined") return null;
       const str = String(rawDateStr).trim();
@@ -496,6 +494,7 @@
         const holdDateStr = extractIsoDateString(event.開催日);
         const deadlineDateStr = extractIsoDateString(event.申し込み締め切り);
 
+        // 🎯 データのオブジェクト化をやめ、純粋な '2026-06-13' というテキストのまま引き渡す
         if (holdDateStr) {
           calendarEvents.push({
             title: `🎤 ${event.イベント名 || '未設定'}`,
