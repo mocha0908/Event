@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>イベント・チケット管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
@@ -10,33 +10,46 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; }
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; letter-spacing: -0.01em; -webkit-overflow-scrolling: touch; }
     .fc { --fc-border-color: #e5e7eb; --fc-button-bg-color: #111827; --fc-button-border-color: #111827; --fc-button-hover-bg-color: #1f2937; --fc-button-hover-border-color: #1f2937; }
     .fc .fc-toolbar-title { font-size: 1rem !important; font-weight: 700; color: #111827; }
     .fc .fc-button { font-size: 0.75rem !important; padding: 0.4rem 0.6rem !important; border-radius: 0.5rem !important; }
     .fc-theme-standard td, .fc-theme-standard th { border-color: #f3f4f6 !important; }
-    .fc-v-event { background-color: #111827 !important; border-color: #111827 !important; padding: 2px 4px; }
-    .fc-event { cursor: pointer; transition: opacity 0.15s; }
-    .fc-event:hover { opacity: 0.85; }
-    .fc-event-title { font-size: 10px !important; font-weight: 500; }
     
-    .fc .fc-day-today { background-color: rgba(243, 244, 246, 0.7) !important; }
+    .fc-v-event, .fc-h-event { background-color: #111827 !important; border-color: #111827 !important; padding: 4px 6px !important; margin: 2px 1px !important; border-radius: 4px !important; display: block !important; }
+    .fc-event { cursor: pointer; transition: opacity 0.1s; }
+    .fc-event:active { opacity: 0.6; }
+    .fc-event-title { font-size: 10px !important; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .fc .fc-day-today { 
+      background-color: #f3f4f6 !important;
+      box-shadow: inset 0 0 0 2px #111827 !important;
+      position: relative;
+    }
+    .fc .fc-day-today .fc-daygrid-day-number::after {
+      content: " TODAY";
+      font-size: 8px;
+      font-weight: bold;
+      color: #111827;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
 
     @keyframes card-flash {
-      0% { border-color: #111827; box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.15); }
-      50% { border-color: #3b82f6; box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.3); }
-      100% { border-color: inherit; box-shadow: inherit; }
+      0% { border-color: #111827; box-shadow: 0 0 0 6px rgba(17, 24, 39, 0.3); }
+      50% { border-color: #3b82f6; box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.5); }
+      100% { border-color: #e5e7eb; box-shadow: none; }
     }
     .flash-highlight {
-      animation: card-flash 2s ease-in-out 2;
+      animation: card-flash 1.5s ease-in-out 2 !important;
     }
   </style>
 </head>
 <body class="bg-[#fafafa] min-h-screen text-gray-900 antialiased">
 
-  <div class="max-w-6xl mx-auto px-4 py-12 sm:px-6">
+  <div class="max-w-6xl mx-auto px-4 py-8 sm:px-6">
     
-    <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-6">
+    <header class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-4">
       <div>
         <h1 class="text-xl font-bold text-gray-900 tracking-tight">イベント・チケット管理</h1>
         <p class="text-xs text-gray-400 mt-1">スケジュールと締め切りを一元管理します</p>
@@ -47,7 +60,7 @@
           イベント追加
         </button>
         <button onclick="toggleForm('member-manager-container')" class="flex-1 sm:flex-none bg-white hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-lg font-medium text-xs border border-gray-200 transition duration-150">
-          参戦者の一括管理
+          メンバー管理
         </button>
         <button onclick="fetchEvents(true)" class="bg-white hover:bg-gray-50 text-gray-400 p-2 rounded-lg border border-gray-200 transition duration-150" title="手動更新">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path></svg>
@@ -55,7 +68,7 @@
       </div>
     </header>
 
-    <div class="flex border-b border-gray-200 mb-8 space-x-6">
+    <div class="flex border-b border-gray-200 mb-6 space-x-6">
       <button id="tab-list-btn" onclick="switchTab('list')" class="pb-3 text-sm font-semibold border-b-2 border-gray-900 text-gray-900 transition">
         ⏳ 締め切り順リスト
       </button>
@@ -64,9 +77,9 @@
       </button>
     </div>
 
-    <div id="member-manager-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-8 max-w-md mx-auto">
+    <div id="member-manager-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-6 max-w-md mx-auto">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase">参戦メンバーの設定（一括）</h2>
+        <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase">参戦メンバーの設定</h2>
         <button onclick="toggleForm('member-manager-container')" class="text-gray-400 hover:text-gray-600 text-xs">✕</button>
       </div>
       <div class="flex gap-2 mb-4">
@@ -76,7 +89,7 @@
       <div id="manager-member-list" class="flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-lg min-h-[40px]"></div>
     </div>
 
-    <div id="add-form-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-8 max-w-xl mx-auto">
+    <div id="add-form-container" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6 max-w-xl mx-auto">
       <h2 class="text-xs font-bold text-gray-800 tracking-wider uppercase mb-4">新規イベント登録</h2>
       <form id="add-event-form" onsubmit="addEvent(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -112,7 +125,7 @@
 
     <div id="sync-indicator" class="fixed bottom-4 right-4 bg-gray-900/90 text-white text-[10px] px-3 py-1.5 rounded-full shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-1.5 z-50">
       <div class="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
-      最新データと同期中...
+      同期中...
     </div>
 
     <div id="loading" class="my-24 text-center hidden">
@@ -120,9 +133,9 @@
       <p class="text-xs text-gray-400">データを読み込み中</p>
     </div>
 
-    <div id="view-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    <div id="view-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
 
-    <div id="view-calendar" class="hidden bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+    <div id="view-calendar" class="hidden bg-white border border-gray-200 rounded-xl p-3 sm:p-6 shadow-sm">
       <div id="calendar"></div>
     </div>
 
@@ -132,8 +145,6 @@
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwseOQ37SQ_9l7AL6yIaGeuZ7K79yndwdZ6VUxFVIAGQKdy9SJS3IvY3EGpxf0HT0uh/exec";
 
     let members = JSON.parse(localStorage.getItem('ticket_hub_members')) || ["なゆ", "そると"];
-    
-    // ✨ キャッシュ（ローカルストレージ）から前回のデータを最速で取り出す
     let globalEventsRaw = JSON.parse(localStorage.getItem('ticket_hub_events_cache')) || [];
     let localEditingNumbers = {};
     let calendarInstance = null;
@@ -247,34 +258,26 @@
       } catch (e) { return null; }
     };
 
-    // ✨ 【超爆速化】キャッシュがあれば一瞬で描画し、裏（非同期）でGASから最新版を落とす仕組みに変更
     async function fetchEvents(forceWithSpinner = false) {
       const loadingEl = document.getElementById('loading');
       const indicatorEl = document.getElementById('sync-indicator');
       
-      // 1. もしキャッシュがすでにあれば、まず先に画面を組み立てる（体感0秒）
       if (globalEventsRaw.length > 0 && !forceWithSpinner) {
         renderCurrentView();
-        // 裏で同期していることを知らせるインジケーターをふわっと表示
         indicatorEl.classList.remove('opacity-0');
       } else {
-        // キャッシュがない最初の一回、または手動更新ボタンを押した時だけスピナーを出す
         loadingEl.classList.remove('hidden');
       }
       
       try {
-        // 裏でGASから最新データを取得
         const response = await fetch(GAS_API_URL);
         const latestData = await response.json();
         
-        // ローカルのキャッシュを最新データで上書き
         globalEventsRaw = latestData;
         localStorage.setItem('ticket_hub_events_cache', JSON.stringify(latestData));
-        
-        // 最新データで画面を再描画（変更があればここでパッと切り替わる）
         renderCurrentView();
       } catch (error) {
-        console.error("同期に失敗しました。オフラインモードで続行します:", error);
+        console.error("同期失敗:", error);
       } finally {
         loadingEl.classList.add('hidden');
         indicatorEl.classList.add('opacity-0');
@@ -289,18 +292,19 @@
       }
     }
 
-    // ─── ビュー1: 締め切り順リストの描画 ───
     function renderListView() {
       const listEl = document.getElementById('view-list');
       listEl.innerHTML = '';
 
       if (globalEventsRaw.length === 0) {
-        listEl.innerHTML = '<div class="col-span-full text-center py-12 text-xs text-gray-400">登録されたイベントがありません。「イベント追加」から登録してください。</div>';
+        listEl.innerHTML = '<div class="col-span-full text-center py-12 text-xs text-gray-400">イベントがありません。</div>';
         return;
       }
 
+      // ⏱️ 「昨日、今日、明日」の基準日計算（日本時間基準）
       const today = new Date(); today.setHours(0,0,0,0);
       const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1); tomorrow.setHours(0,0,0,0);
+      const yesterday = new Date(); yesterday.setDate(today.getDate() - 1); yesterday.setHours(0,0,0,0);
 
       const formatToJapaneseDate = (dateStr) => {
         const d = parseToPureDate(dateStr);
@@ -308,26 +312,33 @@
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
+      // 🚀 ソート条件の変更（昨日、今日、明日をまとめて最上位に持ってくる）
       const sortedData = [...globalEventsRaw].sort((a, b) => {
         const aDate = parseToPureDate(a.申し込み締め切り);
         const bDate = parseToPureDate(b.申し込み締め切り);
-        const aIsUrgent = aDate && (aDate.getTime() === today.getTime() || aDate.getTime() === tomorrow.getTime());
-        const bIsUrgent = bDate && (bDate.getTime() === today.getTime() || bDate.getTime() === tomorrow.getTime());
+        
+        const aIsUrgent = aDate && (aDate.getTime() === yesterday.getTime() || aDate.getTime() === today.getTime() || aDate.getTime() === tomorrow.getTime());
+        const bIsUrgent = bDate && (bDate.getTime() === yesterday.getTime() || bDate.getTime() === today.getTime() || bDate.getTime() === tomorrow.getTime());
+        
         if (aIsUrgent && bIsUrgent) return aDate.getTime() - bDate.getTime();
         if (aIsUrgent && !bIsUrgent) return -1;
         if (!aIsUrgent && bIsUrgent) return 1;
+        
         const aHold = parseToPureDate(a.開催日); const bHold = parseToPureDate(b.開催日);
         return (aHold ? aHold.getTime() : 9999999999999) - (bHold ? bHold.getTime() : 9999999999999);
       });
 
       sortedData.forEach(event => {
         const deadlineDateObj = parseToPureDate(event.申し込み締め切り);
+        const isYesterday = deadlineDateObj && deadlineDateObj.getTime() === yesterday.getTime();
         const isToday = deadlineDateObj && deadlineDateObj.getTime() === today.getTime();
         const isTomorrow = deadlineDateObj && deadlineDateObj.getTime() === tomorrow.getTime();
-        const isUrgent = isToday || isTomorrow;
+        const isUrgent = isYesterday || isToday || isTomorrow;
 
         let cardClass = "bg-white border border-gray-200";
         let badgeClass = "bg-gray-100 text-gray-600";
+        
+        // 🚨 昨日・今日・明日の場合は赤い強力な枠線で一番上に固定
         if (isUrgent) {
           cardClass = "bg-white border-2 border-red-500 shadow-sm";
           badgeClass = "bg-red-50 text-red-600 font-medium";
@@ -363,16 +374,22 @@
           dynamicMembersHTML += `
             <div class="flex items-center justify-between border-b border-gray-50 py-1.5 last:border-none">
               <label class="flex items-center space-x-2 cursor-pointer flex-1">
-                <input type="checkbox" ${isChecked} onchange="updateCell(${event.id}, '${checkKey}', this.checked)" class="w-3.5 h-3.5 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
+                <input type="checkbox" ${isChecked} onchange="updateCell(${event.id}, '${checkKey}', this.checked)" class="w-4 h-4 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
                 <span class="text-xs text-gray-600">${m}</span>
               </label>
               <div class="flex items-center space-x-1">
                 <span class="text-[10px] text-gray-400">番:</span>
-                <input type="text" value="${numVal}" onchange="updateCell(${event.id}, '${numKey}', this.value)" class="border border-gray-200 bg-gray-50 w-14 p-0.5 text-center rounded text-xs text-gray-700 focus:border-gray-400 focus:outline-none">
+                <input type="text" value="${numVal}" onchange="updateCell(${event.id}, '${numKey}', this.value)" class="border border-gray-200 bg-gray-50 w-14 p-1 text-center rounded text-xs text-gray-700 focus:border-gray-400 focus:outline-none">
               </div>
             </div>
           `;
         });
+
+        // 🏷️ バッジ文字の振り分け
+        let badgeText = '締切: ' + displayDeadlineDate;
+        if (isYesterday) badgeText = '⚠️ 昨日締切！';
+        if (isToday) badgeText = '🚨 今日締切！';
+        if (isTomorrow) badgeText = '⏳ 明日締切';
 
         const card = document.createElement('div');
         card.id = `event-card-${event.id}`;
@@ -384,12 +401,12 @@
               <span class="text-[10px] text-gray-400 font-medium tracking-tight">${displayHoldingDate}</span>
               ${event.申し込み締め切り ? `
                 <span class="text-[10px] px-2 py-0.5 rounded ${badgeClass}">
-                  ${isToday ? '今日締切' : isTomorrow ? '明日締切' : '締切: ' + displayDeadlineDate}
+                  ${badgeText}
                 </span>
               ` : ''}
             </div>
 
-            <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-4 right-4 text-gray-300 hover:text-gray-600 transition" title="コピー">
+            <button onclick="copyToClipboard(\`${copyText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)" class="absolute top-4 right-4 text-gray-300 hover:text-gray-600 transition.p-2" title="コピー">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
             </button>
 
@@ -398,7 +415,7 @@
             
             ${event.URL ? `
               <div class="text-[11px] mt-3 pt-2.5 border-t border-gray-100">
-                <a href="${event.URL}" target="_blank" class="text-blue-600 hover:underline break-all block font-medium">チケットリンク →</a>
+                <a href="${event.URL}" target="_blank" class="text-blue-600 hover:underline break-all block font-medium py-1">チケットリンク →</a>
               </div>
             ` : ''}
             
@@ -414,20 +431,20 @@
               </div>
               
               <div class="flex justify-between items-center pt-0.5">
-                <button onclick="toggleCardEdit(${event.id})" class="text-gray-400 hover:text-gray-600 text-[10px]">編集</button>
+                <button onclick="toggleCardEdit(${event.id})" class="text-gray-400 hover:text-gray-600 text-[10px] py-1">編集</button>
                 <button onclick="saveCardNumbers(${event.id})" id="save-${event.id}-nums" class="hidden bg-gray-900 text-white px-2 py-0.5 rounded text-[10px]">保存</button>
               </div>
             </div>
           </div>
 
           <div class="border-t border-gray-100 pt-3 space-y-1.5">
-            <label class="flex items-center space-x-2 cursor-pointer py-0.5">
-              <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-3.5 h-3.5 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
+            <label class="flex items-center space-x-2 cursor-pointer py-1">
+              <input type="checkbox" ${event.リマインド ? 'checked' : ''} onchange="updateCell(${event.id}, 'リマインド', this.checked)" class="w-4 h-4 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
               <span class="text-xs text-gray-600">リマインド通知</span>
             </label>
 
-            <label class="flex items-center space-x-2 cursor-pointer py-0.5">
-              <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-3.5 h-3.5 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
+            <label class="flex items-center space-x-2 cursor-pointer py-1">
+              <input type="checkbox" ${event.申し込み済み ? 'checked' : ''} onchange="updateCell(${event.id}, '申し込み済み', this.checked)" class="w-4 h-4 rounded text-gray-900 border-gray-300 focus:ring-gray-900">
               <span class="text-xs text-gray-600">本申し込み完了</span>
             </label>
 
@@ -440,7 +457,6 @@
       });
     }
 
-    // ─── ビュー2: カレンダー表示の描画 ───
     function initAndRenderCalendar() {
       const calendarEl = document.getElementById('calendar');
       
@@ -471,6 +487,9 @@
         }
       });
 
+      const jstNow = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
+      const jstTodayStr = `${jstNow.getFullYear()}-${String(jstNow.getMonth() + 1).padStart(2, '0')}-${String(jstNow.getDate()).padStart(2, '0')}`;
+
       if (!calendarInstance) {
         calendarInstance = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
@@ -479,20 +498,13 @@
           headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
           events: calendarEvents,
           contentHeight: 'auto',
-          timeZone: 'local',
+          now: jstTodayStr,
           
           eventClick: function(info) {
+            info.jsEvent.preventDefault();
             const targetId = info.event.extendedProps.eventId;
             if (targetId) {
-              switchTab('list');
-              setTimeout(() => {
-                const cardEl = document.getElementById(`event-card-${targetId}`);
-                if (cardEl) {
-                  cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  cardEl.classList.add('flash-highlight');
-                  setTimeout(() => { cardEl.classList.remove('flash-highlight'); }, 4000);
-                }
-              }, 100);
+              executeJump(targetId);
             }
           }
         });
@@ -502,6 +514,22 @@
         calendarInstance.addEventSource(calendarEvents);
         calendarInstance.render();
       }
+    }
+
+    function executeJump(targetId) {
+      switchTab('list');
+      setTimeout(() => {
+        const cardEl = document.getElementById(`event-card-${targetId}`);
+        if (cardEl) {
+          const offsetTop = cardEl.getBoundingClientRect().top + window.pageYOffset - (window.innerHeight / 3);
+          window.scrollTo({
+            top: offsetTop,
+            behavior: 'smooth'
+          });
+          cardEl.classList.add('flash-highlight');
+          setTimeout(() => { cardEl.classList.remove('flash-highlight'); }, 3500);
+        }
+      }, 180);
     }
 
     function toggleCardEdit(rowId) {
@@ -560,7 +588,6 @@
         .map(r => `${r.label.replace(/:|;/g, '')}:${r.num.replace(/:|;/g, '')}:${r.status}`)
         .join(';;');
 
-      // キャッシュ（表示データ）もその場で書き換え
       const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
       if(idx !== -1) globalEventsRaw[idx]['番号1'] = packagedString;
       localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
@@ -582,7 +609,6 @@
     }
 
     async function updateCell(rowId, columnName, value) {
-      // ユーザーの操作体験を爆速にするため、サーバーへの送信完了を待たずにまずキャッシュを更新
       const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
       if(idx !== -1) globalEventsRaw[idx][columnName] = value;
       localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
@@ -609,11 +635,10 @@
         await fetch(GAS_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         alert("追加しました");
         form.reset(); toggleForm('add-form-container'); 
-        fetchEvents(true); // 追加時のみスピナーを出して強制再読込
+        fetchEvents(true);
       } catch (error) { alert("失敗しました"); }
     }
 
-    // 初回起動
     window.onload = () => {
       fetchEvents(false);
     };
