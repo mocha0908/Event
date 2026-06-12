@@ -150,14 +150,13 @@
     let calendarInstance = null;
     let currentTab = 'list';
 
+    // 🎯 今日の日付文字列を「yyyy-mm-dd」の形に安全かつ確実に生成する（バグ修正）
     function getJstTodayString() {
-      const formatter = new Intl.DateTimeFormat('ja-JP', {
-        timeZone: 'Asia/Tokyo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      return formatter.format(new Date()).replace(/\//g, '-');
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
     function toggleForm(id) {
@@ -249,7 +248,7 @@
       return result;
     }
 
-    // リスト順ソート用の純粋な日付パース（スラッシュ区切り）
+    // 安全な日付パース
     const parseToPureDate = (dateStr) => {
       if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
       try {
@@ -267,18 +266,16 @@
       } catch (e) { return null; }
     };
 
-    // 🎯 カレンダーに直接放り込む「yyyy-mm-dd」文字列の抽出器（時差バグ完全防御）
+    // カレンダー用の文字列抽出
     function extractIsoDateString(rawDateStr) {
       if (!rawDateStr || rawDateStr === "null" || rawDateStr === "undefined") return null;
       const str = String(rawDateStr).trim();
       if (!str) return null;
       
-      // ISO形式（2026-06-12T15:00:00.000Zなど）から日付部分だけを抜く
       if (str.includes('T')) {
         return str.split('T')[0];
       }
       
-      // スプレッドシート側の書式が 2026/06/12 などの場合の置換
       let clean = str.replace(/\//g, '-');
       if (clean.includes('年')) {
         clean = clean.replace('年', '-').replace('月', '-').replace('日', '');
@@ -496,14 +493,13 @@
       const calendarEvents = [];
       
       globalEventsRaw.forEach(event => {
-        // 🎯 JavaScriptの日付パースを通さず、文字列のまま直接抽出
         const holdDateStr = extractIsoDateString(event.開催日);
         const deadlineDateStr = extractIsoDateString(event.申し込み締め切り);
 
         if (holdDateStr) {
           calendarEvents.push({
             title: `🎤 ${event.イベント名 || '未設定'}`,
-            start: holdDateStr, // 👈 純粋な 'yyyy-mm-dd' 文字列を入力
+            start: holdDateStr,
             allDay: true,
             extendedProps: { eventId: event.id }
           });
@@ -511,7 +507,7 @@
         if (deadlineDateStr) {
           calendarEvents.push({
             title: `⚠️ 〆: ${event.イベント名 || '未設定'}`,
-            start: deadlineDateStr, // 👈 純粋な 'yyyy-mm-dd' 文字列を入力
+            start: deadlineDateStr,
             allDay: true,
             backgroundColor: '#ef4444',
             borderColor: '#ef4444',
