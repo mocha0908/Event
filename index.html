@@ -150,6 +150,18 @@
     let calendarInstance = null;
     let currentTab = 'list';
 
+    // 🎯 タイムゾーンバグを完全に破壊する関数（日本時間の「yyyy-mm-dd」を常に正確に取得）
+    function getJstTodayString() {
+      const formatter = new Intl.DateTimeFormat('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      // 出力例: "2026/03/30" -> "2026-03-30" に変換
+      return formatter.format(new Date()).replace(/\//g, '-');
+    }
+
     function toggleForm(id) {
       document.getElementById(id).classList.toggle('hidden');
       if (id === 'member-manager-container') renderManagerMemberList();
@@ -301,10 +313,13 @@
         return;
       }
 
-      // ⏱️ 「昨日、今日、明日」の基準日計算（日本時間基準）
-      const today = new Date(); today.setHours(0,0,0,0);
-      const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1); tomorrow.setHours(0,0,0,0);
-      const yesterday = new Date(); yesterday.setDate(today.getDate() - 1); yesterday.setHours(0,0,0,0);
+      // ⏱️ 安全な今日文字列から昨日・今日・明日を計算
+      const jstTodayStr = getJstTodayString();
+      const p = jstTodayStr.split('-');
+      const today = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10), 0,0,0,0);
+      
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
 
       const formatToJapaneseDate = (dateStr) => {
         const d = parseToPureDate(dateStr);
@@ -312,7 +327,6 @@
         return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
       };
 
-      // 🚀 ソート条件の変更（昨日、今日、明日をまとめて最上位に持ってくる）
       const sortedData = [...globalEventsRaw].sort((a, b) => {
         const aDate = parseToPureDate(a.申し込み締め切り);
         const bDate = parseToPureDate(b.申し込み締め切り);
@@ -338,7 +352,6 @@
         let cardClass = "bg-white border border-gray-200";
         let badgeClass = "bg-gray-100 text-gray-600";
         
-        // 🚨 昨日・今日・明日の場合は赤い強力な枠線で一番上に固定
         if (isUrgent) {
           cardClass = "bg-white border-2 border-red-500 shadow-sm";
           badgeClass = "bg-red-50 text-red-600 font-medium";
@@ -385,7 +398,6 @@
           `;
         });
 
-        // 🏷️ バッジ文字の振り分け
         let badgeText = '締切: ' + displayDeadlineDate;
         if (isYesterday) badgeText = '⚠️ 昨日締切！';
         if (isToday) badgeText = '🚨 今日締切！';
@@ -487,8 +499,8 @@
         }
       });
 
-      const jstNow = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
-      const jstTodayStr = `${jstNow.getFullYear()}-${String(jstNow.getMonth() + 1).padStart(2, '0')}-${String(jstNow.getDate()).padStart(2, '0')}`;
+      // 🎯 ここを最も安全なJST文字列取得に変更
+      const jstTodayStr = getJstTodayString();
 
       if (!calendarInstance) {
         calendarInstance = new FullCalendar.Calendar(calendarEl, {
@@ -498,7 +510,7 @@
           headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
           events: calendarEvents,
           contentHeight: 'auto',
-          now: jstTodayStr,
+          now: jstTodayStr, // 👈 確実に日本時間の yyyy-mm-dd をカレンダーの今日として設定
           
           eventClick: function(info) {
             info.jsEvent.preventDefault();
