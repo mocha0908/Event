@@ -111,7 +111,6 @@
 
     let members = JSON.parse(localStorage.getItem('ticket_hub_members')) || ["なゆ", "そると"];
     let globalEventsRaw = JSON.parse(localStorage.getItem('ticket_hub_events_cache')) || [];
-    let localEditingNumbers = {};
 
     function getJstTodayString() {
       const now = new Date();
@@ -121,17 +120,53 @@
       return `${y}-${m}-${d}`;
     }
 
+    // 🎯 表記ゆれ（全角、年・月・日、月日のみ）に対応した最新の日付パース
     const parseToPureDate = (dateStr) => {
       if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
       try {
-        let rawStr = String(dateStr);
+        let rawStr = String(dateStr).trim()
+          .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角数字を半角へ
+          .replace(/[\/\.\s、，,・]+/g, '/'); // 各種区切りを / に統一
+
         if (rawStr.includes('T')) rawStr = rawStr.split('T')[0];
-        let cleanStr = rawStr.replace(/-/g, '/');
-        if (cleanStr.includes('年')) cleanStr = cleanStr.replace('年', '/').replace('月', '/').replace('日', '');
-        const dParts = cleanStr.split('/');
+        
+        // 「2026年03月05日」などの日本語表記の置換
+        rawStr = rawStr.replace(/年/g, '/').replace(/月/g, '/').replace(/日/g, '/');
+        if (rawStr.endsWith('/')) rawStr = rawStr.slice(0, -1);
+
+        const dParts = rawStr.split('/').filter(p => p !== "");
         if (dParts.length < 2) return null;
-        return new Date(dParts.length === 3 ? parseInt(dParts[0],10) : new Date().getFullYear(), (dParts.length === 3 ? parseInt(dParts[1],10) : parseInt(dParts[0],10)) - 1, dParts.length === 3 ? parseInt(dParts[2],10) : parseInt(dParts[1],10), 0,0,0,0);
-      } catch (e) { return null; }
+
+        let year = new Date().getFullYear();
+        let month = 0;
+        let day = 1;
+
+        if (dParts.length === 3) {
+          year = parseInt(dParts[0], 10);
+          month = parseInt(dParts[1], 10) - 1;
+          day = parseInt(dParts[2], 10);
+        } else if (dParts.length === 2) {
+          month = parseInt(dParts[0], 10) - 1;
+          day = parseInt(dParts[1], 10);
+          
+          // 月日のみの場合、過去日にならないよう年跨ぎを自動判定
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const testDate = new Date(currentYear, month, day, 0, 0, 0, 0);
+          const yesterday = new Date(); yesterday.setDate(now.getDate() - 1);
+          yesterday.setHours(0,0,0,0);
+          
+          if (testDate.getTime() < yesterday.getTime()) {
+            year = currentYear + 1;
+          } else {
+            year = currentYear;
+          }
+        }
+
+        return new Date(year, month, day, 0, 0, 0, 0);
+      } catch (e) { 
+        return null; 
+      }
     };
 
     function toggleForm(id) {
@@ -233,7 +268,7 @@
 
       const formatToJapaneseDate = (dateStr) => {
         const d = parseToPureDate(dateStr);
-        if (!d) return '日程未定';
+        if (!d) return dateStr || '日程未定';
         return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
       };
 
@@ -263,7 +298,7 @@
         
         if (isUrgent) {
           cardClass = "bg-white border-2 border-red-500 urgent-card shadow-md";
-          badgeClass = "bg-red-505 text-white bg-red-500 font-bold animate-pulse";
+          badgeClass = "bg-red-500 text-white font-bold animate-pulse";
         }
 
         const displayHoldingDate = formatToJapaneseDate(event.開催日);
@@ -276,15 +311,25 @@
 
         const copyText = `${displayHoldingDate}\n${event.イベント名 || '未設定'}\n${event.会場 || '未設定'}\n${event.URL || 'URLなし'}\n${mmddDeadline}`;
 
-        if (!localEditingNumbers[event.id]) {
-          const parsed = parseNumbersString(event.番号1);
-          localEditingNumbers[event.id] = parsed.length > 0 ? parsed : [{ label: "番号1", num: "", status: "自分使用" }];
+        // 管理番号パース & インライン入力フォーム生成
+        const parsedNums = parseNumbersString(event.番号1);
+        let inlineNumbersHTML = '';
+        if (parsedNums.length === 0) {
+          parsedNums.push({ label: "番号1", num: "", status: "自分使用" });
         }
 
-        const displayNumbersText = localEditingNumbers[event.id]
-          .filter(p => p.num !== "")
-          .map(p => `${p.label}:${p.num}(${p.status.replace('使用','').replace('み','')})`)
-          .join(", ");
+        parsedNums.forEach((p, idx) => {
+          const shortStatus = p.status.replace('使用','').replace('み','');
+          inlineNumbersHTML += `
+            <div class="flex items-center justify-end space-x-1">
+              <span class="text-[10px] font-medium text-slate-400">(${shortStatus})</span>
+              <input type="text" value="${p.num}" 
+                onchange="handleInlineNumChange(${event.id}, ${idx}, this.value)" 
+                placeholder="未入力"
+                class="border border-slate-200 bg-slate-50/50 w-24 p-1 text-center rounded-lg text-xs font-semibold text-slate-700 focus:border-slate-400 focus:bg-white focus:outline-none transition">
+            </div>
+          `;
+        });
 
         let dynamicMembersHTML = '';
         members.forEach(m => {
@@ -350,20 +395,15 @@
               </div>
             ` : ''}
             
-            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs mt-4 space-y-2">
+            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs mt-4">
               <div class="flex justify-between items-start">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">管理番号</span>
-                <span class="font-semibold text-slate-700 text-right max-w-[190px] break-words">${displayNumbersText || '未入力'}</span>
-              </div>
-              
-              <div id="inline-edit-${event.id}-nums" class="hidden space-y-2 pt-2.5 border-t border-slate-200/60">
-                <div id="edit-inputs-list-${event.id}"></div>
-                <button onclick="addNewRowToCard(${event.id})" class="text-[10px] font-semibold text-blue-600 hover:underline block pt-1">＋ 項目を追加</button>
-              </div>
-              
-              <div class="flex justify-between items-center pt-1">
-                <button onclick="toggleCardEdit(${event.id})" class="text-slate-400 hover:text-slate-600 font-medium text-[10px] transition">管理番号を編集</button>
-                <button onclick="saveCardNumbers(${event.id})" id="save-${event.id}-nums" class="hidden bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[10px] font-semibold shadow-sm transition">保存</button>
+                <div class="flex flex-col">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">管理番号</span>
+                  <button onclick="clearAndAddRow(${event.id})" class="text-[9px] text-blue-500 hover:underline font-medium mt-1 text-left">＋ 追加・リセット</button>
+                </div>
+                <div class="flex flex-col space-y-1.5 min-w-[140px]">
+                  ${inlineNumbersHTML}
+                </div>
               </div>
             </div>
           </div>
@@ -390,100 +430,72 @@
       });
     }
 
-    function toggleCardEdit(rowId) {
-      const container = document.getElementById(`inline-edit-${rowId}-nums`);
-      const saveBtn = document.getElementById(`save-${rowId}-nums`);
-      const isHidden = container.classList.contains('hidden');
-      container.classList.toggle('hidden');
-      saveBtn.classList.toggle('hidden');
-      if (isHidden) renderEditRows(rowId);
-    }
+    // 管理番号のインライン編集処理
+    async function handleInlineNumChange(rowId, itemIdx, newValue) {
+      const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
+      if (idx === -1) return;
 
-    function renderEditRows(rowId) {
-      const listContainer = document.getElementById(`edit-inputs-list-${rowId}`);
-      listContainer.innerHTML = '';
-      
-      localEditingNumbers[rowId].forEach((item, idx) => {
-        const row = document.createElement('div');
-        row.className = "flex gap-1.5 items-center mb-2";
-        row.innerHTML = `
-          <input type="text" value="${item.label}" oninput="localEditingNumbers[${rowId}][${idx}].label=this.value" placeholder="項目名" class="bg-white border border-slate-200 p-1.5 rounded-lg w-16 text-[10px] text-slate-500 font-bold focus:outline-none focus:border-slate-400">
-          <input type="text" value="${item.num}" oninput="localEditingNumbers[${rowId}][${idx}].num=this.value" placeholder="番号(カンマ区切りで自動分解)" class="bg-white border border-slate-200 p-1.5 rounded-lg flex-1 text-xs focus:outline-none focus:border-slate-400">
-          <select onchange="localEditingNumbers[${rowId}][${idx}].status=this.value" class="bg-white border border-slate-200 p-1.5 rounded-lg text-xs text-slate-600 font-medium focus:outline-none">
-            <option value="自分使用" ${item.status === "自分使用" ? "selected" : ""}>自分使用</option>
-            <option value="譲渡前" ${item.status === "譲渡前" ? "selected" : ""}>譲渡前</option>
-            <option value="譲渡済み" ${item.status === "譲渡済み" ? "selected" : ""}>譲渡済み</option>
-          </select>
-          <button onclick="removeRowFromCard(${rowId}, ${idx})" class="text-slate-300 hover:text-red-500 font-bold px-1 transition">✕</button>
-        `;
-        listContainer.appendChild(row);
-      });
-    }
+      let currentRows = parseNumbersString(globalEventsRaw[idx]['番号1']);
+      if (currentRows.length === 0) {
+        currentRows = [{ label: "番号1", num: "", status: "自分使用" }];
+      }
 
-    function addNewRowToCard(rowId) {
-      const currentRows = localEditingNumbers[rowId] || [];
-      const nextIndex = currentRows.length + 1;
-      currentRows.push({ label: `番号${nextIndex}`, num: "", status: "自分使用" });
-      localEditingNumbers[rowId] = currentRows;
-      renderEditRows(rowId);
-    }
+      if (currentRows[itemIdx]) {
+        currentRows[itemIdx].num = newValue.trim();
+      }
 
-    function removeRowFromCard(rowId, index) {
-      localEditingNumbers[rowId].splice(index, 1);
-      renderEditRows(rowId);
-    }
-
-    // 🎯 入力された「1,2,3,4,5」を検知して自動分解する処理
-    async function saveCardNumbers(rowId) {
-      const rows = localEditingNumbers[rowId] || [];
       let finalRows = [];
+      const delimiters = /[\s,、，]+/;
 
-      rows.forEach((r, idx) => {
+      currentRows.forEach((r) => {
         const rawNum = r.num.trim();
-        // カンマ、全角カンマ、スペース、読点で区切られているかチェック
-        const delimiters = /[\s,、，]+/;
-        
         if (delimiters.test(rawNum)) {
-          // 区切り文字を見つけたらバラバラに分解する
           const splitNums = rawNum.split(delimiters).filter(n => n.trim() !== "");
-          
-          splitNums.forEach((singleNum, sIdx) => {
+          splitNums.forEach((singleNum) => {
             finalRows.push({
-              // 項目名が「番号1」などの初期値なら、自動で「番号1」「番号2」と連番を振り直す
-              label: r.label.startsWith("番号") ? `番号${finalRows.length + 1}` : `${r.label}-${sIdx + 1}`,
+              label: `番号${finalRows.length + 1}`,
               num: singleNum,
               status: r.status
             });
           });
         } else {
-          // 区切りがない通常の入力はそのまま保持
-          if (r.label.trim() !== "") {
-            finalRows.push(r);
+          if (r.num !== "" || currentRows.length === 1) {
+            finalRows.push({
+              label: `番号${finalRows.length + 1}`,
+              num: r.num,
+              status: r.status
+            });
           }
         }
       });
 
-      // 万が一すべて空欄になった場合は初期入力欄を1つ用意
-      if (finalRows.length === 0) {
-        finalRows = [{ label: "番号1", num: "", status: "自分使用" }];
-      }
-
-      // スプレッドシート送信用に「項目名:番号:ステータス;;項目名:番号...」の形式にパッケージ化
       const packagedString = finalRows
         .filter(r => r.num.trim() !== "")
-        .map(r => `${r.label.replace(/:|;/g, '')}:${r.num.replace(/:|;/g, '')}:${r.status}`)
+        .map(r => `${r.label}:${r.num}:${r.status}`)
         .join(';;');
 
-      // ローカルのキャッシュを更新
-      localEditingNumbers[rowId] = finalRows;
-      const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
-      if(idx !== -1) globalEventsRaw[idx]['番号1'] = packagedString;
+      globalEventsRaw[idx]['番号1'] = packagedString;
       localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
-
-      // クラウド（GAS）に送信
       await updateCell(rowId, '番号1', packagedString);
-      alert("管理番号を分解・保存しました！");
-      fetchEvents(true);
+      
+      renderListView();
+    }
+
+    // 行追加・リセット用
+    async function clearAndAddRow(rowId) {
+      const idx = globalEventsRaw.findIndex(ev => ev.id == rowId);
+      if (idx === -1) return;
+
+      let currentRows = parseNumbersString(globalEventsRaw[idx]['番号1']);
+      currentRows.push({ label: `番号${currentRows.length + 1}`, num: "", status: "自分使用" });
+
+      const packagedString = currentRows
+        .map(r => `${r.label}:${r.num}:${r.status}`)
+        .join(';;');
+
+      globalEventsRaw[idx]['番号1'] = packagedString;
+      localStorage.setItem('ticket_hub_events_cache', JSON.stringify(globalEventsRaw));
+      renderListView();
     }
 
     function copyToClipboard(text) {
