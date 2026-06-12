@@ -249,7 +249,7 @@
       return result;
     }
 
-    // 🎯 タイムゾーンの狂いを完全に直す安全な日付パース処理
+    // リスト順ソート用の純粋な日付パース（スラッシュ区切り）
     const parseToPureDate = (dateStr) => {
       if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return null;
       try {
@@ -257,25 +257,40 @@
         if (rawStr.includes('T')) {
           rawStr = rawStr.split('T')[0];
         }
-        // ハイフンをスラッシュに置換（JSのタイムゾーン誤認バグを殺すため）
         let cleanStr = rawStr.replace(/-/g, '/');
         if (cleanStr.includes('年')) cleanStr = cleanStr.replace('年', '/').replace('月', '/').replace('日', '');
         
         const dParts = cleanStr.split('/');
         if (dParts.length < 2) return null;
         
-        // yyyy/mm/dd の形でパースすれば、ブラウザは常にローカルタイム（JST）の00:00として認識する
         return new Date(dParts.length === 3 ? parseInt(dParts[0],10) : new Date().getFullYear(), (dParts.length === 3 ? parseInt(dParts[1],10) : parseInt(dParts[0],10)) - 1, dParts.length === 3 ? parseInt(dParts[2],10) : parseInt(dParts[1],10), 0,0,0,0);
       } catch (e) { return null; }
     };
 
-    // FullCalendar用に、ローカル時間を維持したまま yyyy-mm-dd にフォーマットする補助関数
-    function formatToIsoString(dateObj) {
-      if (!dateObj) return "";
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const d = String(dateObj.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+    // 🎯 カレンダーに直接放り込む「yyyy-mm-dd」文字列の抽出器（時差バグ完全防御）
+    function extractIsoDateString(rawDateStr) {
+      if (!rawDateStr || rawDateStr === "null" || rawDateStr === "undefined") return null;
+      const str = String(rawDateStr).trim();
+      if (!str) return null;
+      
+      // ISO形式（2026-06-12T15:00:00.000Zなど）から日付部分だけを抜く
+      if (str.includes('T')) {
+        return str.split('T')[0];
+      }
+      
+      // スプレッドシート側の書式が 2026/06/12 などの場合の置換
+      let clean = str.replace(/\//g, '-');
+      if (clean.includes('年')) {
+        clean = clean.replace('年', '-').replace('月', '-').replace('日', '');
+      }
+      
+      const parts = clean.split('-');
+      if (parts.length === 3) {
+        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      } else if (parts.length === 2) {
+        return `${new Date().getFullYear()}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+      }
+      return null;
     }
 
     async function fetchEvents(forceWithSpinner = false) {
@@ -478,25 +493,25 @@
 
     function initAndRenderCalendar() {
       const calendarEl = document.getElementById('calendar');
-      
       const calendarEvents = [];
+      
       globalEventsRaw.forEach(event => {
-        const holdDate = parseToPureDate(event.開催日);
-        const deadlineDate = parseToPureDate(event.申し込み締め切り);
+        // 🎯 JavaScriptの日付パースを通さず、文字列のまま直接抽出
+        const holdDateStr = extractIsoDateString(event.開催日);
+        const deadlineDateStr = extractIsoDateString(event.申し込み締め切り);
 
-        // 🎯 カレンダーへのマッピング時に正しいローカル文字列にフォーマット
-        if (holdDate) {
+        if (holdDateStr) {
           calendarEvents.push({
             title: `🎤 ${event.イベント名 || '未設定'}`,
-            start: formatToIsoString(holdDate),
+            start: holdDateStr, // 👈 純粋な 'yyyy-mm-dd' 文字列を入力
             allDay: true,
             extendedProps: { eventId: event.id }
           });
         }
-        if (deadlineDate) {
+        if (deadlineDateStr) {
           calendarEvents.push({
             title: `⚠️ 〆: ${event.イベント名 || '未設定'}`,
-            start: formatToIsoString(deadlineDate),
+            start: deadlineDateStr, // 👈 純粋な 'yyyy-mm-dd' 文字列を入力
             allDay: true,
             backgroundColor: '#ef4444',
             borderColor: '#ef4444',
